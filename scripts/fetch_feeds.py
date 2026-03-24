@@ -372,18 +372,18 @@ def get_ai_client():
 
 def classify_romania_impact_batch(articles: list[dict], client_type: str,
                                    client, model: str) -> list[str]:
-    """Return a list of labels ('direct'|'neighbor'|'regional'|'none') same order as articles."""
+    """Return a list of labels ('direct'|'economic'|'security'|'none') same order as articles."""
     items = [{"index": i, "title": a["title"], "summary": a.get("summary", "")}
              for i, a in enumerate(articles)]
     prompt = (
-        "Classify the Romania geopolitical impact of each news article.\n"
-        "For each, respond with exactly one of: direct, neighbor, regional, none\n\n"
+        "Classify how each news article impacts Romania. Romania is an EU/NATO member with a trade-dependent economy.\n"
+        "For each article, respond with exactly one of: direct, economic, security, none\n\n"
         "Definitions:\n"
         "- direct: article explicitly mentions Romania\n"
-        "- neighbor: article's main subject is Moldova, Ukraine, Hungary, Serbia, or Bulgaria (not just a passing mention)\n"
-        "- regional: article's main subject is NATO, EU, or Central/Eastern European security (not just a passing mention)\n"
-        "- none: no meaningful Romania relevance — use this for articles about Asia, the Americas, Africa, Australia, the Middle East, or any topic without a direct link to Romania or its immediate region\n\n"
-        "When in doubt, use 'none'.\n\n"
+        "- economic: article could meaningfully affect Romania's economy even without mentioning Romania — examples: EU energy policy, gas/oil price shocks, sanctions on Russia or Belarus (Romania depends on Black Sea trade and energy imports), grain/food price changes (Romania is a major exporter), ECB rate decisions, tariffs affecting EU trade, financial crises in major Romanian trade partners (Germany, Italy, Hungary), refugee/migration crises that burden Romanian public finances, disruption of Black Sea or Danube shipping routes\n"
+        "- security: article involves a direct military or geopolitical threat relevant to Romania — NATO decisions, conflict in Ukraine or Moldova, Black Sea militarisation, Balkans instability\n"
+        "- none: no meaningful Romania relevance — use this for articles about Asia, the Americas, Africa, Australia, domestic politics of non-adjacent countries, or topics with no plausible link to Romania's economy or security\n\n"
+        "When in doubt, use 'none'. Do not over-classify.\n\n"
         f"Return a JSON array of {len(articles)} strings in the same order as input.\n\n"
         f"Articles:\n{json.dumps(items, ensure_ascii=False)}"
     )
@@ -407,7 +407,7 @@ def classify_romania_impact_batch(articles: list[dict], client_type: str,
         m = re.search(r"\[.*?\]", raw, re.DOTALL)
         if m:
             labels = json.loads(m.group())
-            valid = {"direct", "neighbor", "regional", "none"}
+            valid = {"direct", "economic", "security", "none"}
             return [l if l in valid else "none" for l in labels]
     except Exception as e:
         log.warning("Romania classification failed: %s", e)
@@ -504,15 +504,20 @@ def main():
         else:
             log.warning("No AI API key found; skipping Romania classification")
             # Fallback: rule-based
-            romania_neighbors = {"moldova", "ukraine", "hungary", "serbia", "bulgaria"}
+            economic_keywords = {
+                "energy price", "gas price", "oil price", "ecb", "interest rate",
+                "eu tariff", "black sea", "danube", "grain export", "wheat price",
+                "sanctions", "trade war", "imf", "world bank", "inflation",
+            }
+            security_keywords = {"nato", "ukraine", "moldova", "black sea", "balkans"}
             for art in new_articles:
                 tl = (art["title"] + " " + art["summary"]).lower()
                 if "romania" in tl:
                     art["romania_impact"] = "direct"
-                elif any(c in tl for c in romania_neighbors):
-                    art["romania_impact"] = "neighbor"
-                elif any(w in tl for w in ("nato", " eu ", "european union", "european security")):
-                    art["romania_impact"] = "regional"
+                elif any(kw in tl for kw in economic_keywords):
+                    art["romania_impact"] = "economic"
+                elif any(kw in tl for kw in security_keywords):
+                    art["romania_impact"] = "security"
 
     # Merge + cap
     all_articles = new_articles + existing

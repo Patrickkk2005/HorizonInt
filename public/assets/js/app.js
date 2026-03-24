@@ -89,7 +89,7 @@ function catColor(cat) {
 }
 
 function romaniaLabel(impact) {
-  const labels = { direct: 'RO Direct', neighbor: 'RO Neighbor', regional: 'RO Regional' };
+  const labels = { direct: 'RO Direct', economic: 'RO Economic', security: 'RO Security' };
   return labels[impact] || null;
 }
 
