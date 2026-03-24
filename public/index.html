@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HorizonInt — Geopolitical Intelligence Dashboard</title>
+  <meta name="description" content="Real-time geopolitical intelligence dashboard aggregating world news from 19 major RSS feeds." />
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- marked.js (markdown rendering) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- App styles -->
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+
+  <!-- ── Header ───────────────────────────────────────────────────────────── -->
+  <header id="header">
+    <div class="header-left">
+      <span class="logo">HORIZONINT</span>
+      <span class="live-dot" title="Live feed"></span>
+      <span class="live-label">LIVE</span>
+    </div>
+    <div class="header-center">
+      <span id="utc-clock" class="utc-clock">--:--:-- UTC</span>
+    </div>
+    <div class="header-right">
+      <span class="stat-chip" id="stat-articles">
+        <span class="stat-num" id="article-count">–</span>
+        <span class="stat-label">articles</span>
+      </span>
+      <span class="stat-chip" id="stat-events">
+        <span class="stat-num" id="event-count">–</span>
+        <span class="stat-label">events</span>
+      </span>
+      <span class="stat-chip updated-chip">
+        Updated <span id="last-updated">–</span>
+      </span>
+    </div>
+  </header>
+
+  <!-- ── Category Filter Bar ──────────────────────────────────────────────── -->
+  <div id="filter-bar">
+    <button class="cat-btn active" data-cat="all">All</button>
+    <button class="cat-btn" data-cat="conflict"    style="--cat-color:#ef4444">Conflict</button>
+    <button class="cat-btn" data-cat="protests"    style="--cat-color:#f97316">Protests</button>
+    <button class="cat-btn" data-cat="diplomacy"   style="--cat-color:#3b82f6">Diplomacy</button>
+    <button class="cat-btn" data-cat="sanctions"   style="--cat-color:#a855f7">Sanctions</button>
+    <button class="cat-btn" data-cat="humanrights" style="--cat-color:#ec4899">Human Rights</button>
+    <button class="cat-btn" data-cat="elections"   style="--cat-color:#22c55e">Elections</button>
+    <button class="cat-btn" data-cat="economy"     style="--cat-color:#84cc16">Economy</button>
+    <button class="cat-btn" data-cat="environment" style="--cat-color:#14b8a6">Environment</button>
+    <button class="cat-btn" data-cat="technology"  style="--cat-color:#06b6d4">Technology</button>
+    <button class="cat-btn" data-cat="disaster"    style="--cat-color:#f59e0b">Disaster</button>
+  </div>
+
+  <!-- ── Main Grid ────────────────────────────────────────────────────────── -->
+  <main id="main-grid">
+
+    <!-- Left: AI Briefing -->
+    <aside id="panel-briefing">
+      <div class="panel-header">
+        <span class="panel-title">AI Intelligence Briefing</span>
+        <span id="briefing-date" class="panel-subtitle">–</span>
+      </div>
+      <div id="briefing-content" class="briefing-body">
+        <div class="skeleton-block"></div>
+        <div class="skeleton-block" style="width:80%"></div>
+        <div class="skeleton-block" style="width:90%"></div>
+      </div>
+      <div id="briefing-meta" class="briefing-meta"></div>
+    </aside>
+
+    <!-- Center: News Feed -->
+    <section id="panel-feed">
+      <div class="panel-header">
+        <span class="panel-title">News Feed</span>
+        <span id="feed-count" class="panel-subtitle">Loading…</span>
+      </div>
+      <div id="feed-list" class="feed-list">
+        <!-- populated by app.js -->
+      </div>
+    </section>
+
+    <!-- Right: Event Timeline -->
+    <section id="panel-timeline">
+      <div class="panel-header">
+        <span class="panel-title">Event Timeline</span>
+        <span class="panel-subtitle">Geo-tagged events</span>
+      </div>
+      <div id="timeline-list" class="timeline-list">
+        <!-- populated by app.js -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── Map ──────────────────────────────────────────────────────────────── -->
+  <div id="map-container">
+    <div id="map-header">
+      <span class="panel-title">Global Event Map</span>
+      <span class="panel-subtitle">Circle size = severity · Dashed ring = Romania impact</span>
+    </div>
+    <div id="map"></div>
+  </div>
+
+  <!-- App JS -->
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
