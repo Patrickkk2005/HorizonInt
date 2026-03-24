@@ -125,7 +125,6 @@ function renderBriefing(briefing) {
 
   if (meta) {
     const parts = [];
-    if (briefing.model_used)    parts.push(`Model: ${briefing.model_used}`);
     if (briefing.article_count) parts.push(`${briefing.article_count} articles analysed`);
     if (briefing.generated_at)  parts.push(relativeTime(briefing.generated_at));
     meta.textContent = parts.join(' · ');
@@ -364,7 +363,7 @@ function renderMap(geojson) {
     }
 
     // Romania impact → dashed yellow ring behind the marker
-    if (props.romania_impact && props.romania_impact !== 'none') {
+    if (['direct', 'economic', 'security'].includes(props.romania_impact)) {
       L.circleMarker([lat, lng], {
         radius:    radius + 5,
         color:     '#facc15',

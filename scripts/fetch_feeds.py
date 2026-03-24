@@ -461,6 +461,12 @@ def main():
         except Exception:
             existing = []
 
+    # Migrate legacy romania_impact labels from old schema
+    _valid_impacts = {"direct", "economic", "security", "none"}
+    for art in existing:
+        if art.get("romania_impact") not in _valid_impacts:
+            art["romania_impact"] = "none"
+
     existing_hashes = {url_hash(a["url"]) for a in existing}
     existing_titles = [normalize_title(a["title"]) for a in existing]
 
