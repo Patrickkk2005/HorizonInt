@@ -334,7 +334,7 @@ def compute_relevance(text: str) -> float:
 def extract_location(text: str) -> tuple[str, float, float] | None:
     tl = text.lower()
     for city, (lat, lng) in CITY_COORDS.items():
-        if city in tl:
+        if re.search(r'\b' + re.escape(city) + r'\b', tl):
             return city.title(), lat, lng
     return None
 
@@ -380,9 +380,10 @@ def classify_romania_impact_batch(articles: list[dict], client_type: str,
         "For each, respond with exactly one of: direct, neighbor, regional, none\n\n"
         "Definitions:\n"
         "- direct: article explicitly mentions Romania\n"
-        "- neighbor: article involves Moldova, Ukraine, Hungary, Serbia, or Bulgaria\n"
-        "- regional: article involves NATO, EU, or broader European security\n"
-        "- none: no Romania relevance\n\n"
+        "- neighbor: article's main subject is Moldova, Ukraine, Hungary, Serbia, or Bulgaria (not just a passing mention)\n"
+        "- regional: article's main subject is NATO, EU, or Central/Eastern European security (not just a passing mention)\n"
+        "- none: no meaningful Romania relevance — use this for articles about Asia, the Americas, Africa, Australia, the Middle East, or any topic without a direct link to Romania or its immediate region\n\n"
+        "When in doubt, use 'none'.\n\n"
         f"Return a JSON array of {len(articles)} strings in the same order as input.\n\n"
         f"Articles:\n{json.dumps(items, ensure_ascii=False)}"
     )

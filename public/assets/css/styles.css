@@ -40,7 +40,8 @@ body {
   color: var(--text);
   font-family: var(--font);
   line-height: 1.5;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -168,9 +169,8 @@ body {
   display: grid;
   grid-template-columns: 30% 1fr 30%;
   gap: 0;
-  flex: 1;
+  flex: 0 0 calc(55vh - var(--header-h) - var(--filter-h));
   min-height: 0;
-  height: calc(100vh - var(--header-h) - var(--filter-h));
   overflow: hidden;
 }
 
@@ -373,10 +373,14 @@ aside, #main-grid section {
 
 /* ── Map ──────────────────────────────────────────────────────────────────── */
 #map-container {
-  flex-shrink: 0;
+  flex: 1;
+  min-height: 0;
   border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
 }
 #map-header {
+  flex-shrink: 0;
   padding: 10px 16px 8px;
   background: var(--bg-card);
   border-bottom: 1px solid var(--border);
@@ -385,7 +389,8 @@ aside, #main-grid section {
   gap: 10px;
 }
 #map {
-  height: 360px;
+  flex: 1;
+  min-height: 0;
   background: #060810;
 }
 
@@ -435,8 +440,10 @@ aside, #main-grid section {
 
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
+  body { height: auto; overflow: auto; }
   #main-grid {
     grid-template-columns: 1fr;
+    flex: none;
     height: auto;
   }
   #main-grid aside,
@@ -445,5 +452,6 @@ aside, #main-grid section {
     border-right: none;
     border-bottom: 1px solid var(--border);
   }
-  #map { height: 300px; }
+  #map-container { flex: none; }
+  #map { flex: none; height: 300px; }
 }
