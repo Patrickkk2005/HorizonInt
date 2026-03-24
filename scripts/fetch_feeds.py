@@ -275,6 +275,81 @@ CITY_COORDS: dict[str, tuple[float, float]] = {
     "wellington": (-41.2865, 174.7762), "port moresby": (-9.4438, 147.1803),
 }
 
+# ── City → Geographic Region ───────────────────────────────────────────────────
+
+_REGION_CITY_SETS: dict[str, list[str]] = {
+    "ME": [
+        "baghdad", "mosul", "basra", "erbil", "tehran", "isfahan", "mashhad",
+        "damascus", "aleppo", "idlib", "raqqa", "deir ez-zor", "kabul", "kandahar",
+        "herat", "jalalabad", "riyadh", "jeddah", "dubai", "abu dhabi", "doha",
+        "muscat", "kuwait city", "manama", "sanaa", "aden", "hodeidah", "amman",
+        "beirut", "jerusalem", "tel aviv", "gaza", "ramallah", "ankara", "istanbul",
+        "izmir", "nicosia",
+    ],
+    "CA": [
+        "baku", "yerevan", "tbilisi", "tashkent", "almaty", "bishkek", "ashgabat",
+        "dushanbe", "nur-sultan", "astana",
+    ],
+    "EU": [
+        "moscow", "st. petersburg", "saint petersburg", "novosibirsk", "kyiv", "kiev",
+        "kharkiv", "odessa", "odesa", "mariupol", "donetsk", "luhansk", "zaporizhzhia",
+        "kherson", "bakhmut", "avdiivka", "minsk", "warsaw", "krakow", "prague",
+        "bratislava", "budapest", "vienna", "bucharest", "chisinau", "sofia",
+        "belgrade", "sarajevo", "pristina", "skopje", "tirana", "zagreb", "ljubljana",
+        "riga", "tallinn", "vilnius", "podgorica", "banja luka", "berlin", "munich",
+        "frankfurt", "hamburg", "paris", "marseille", "lyon", "london", "manchester",
+        "madrid", "barcelona", "rome", "milan", "naples", "amsterdam", "brussels",
+        "zurich", "bern", "geneva", "lisbon", "athens", "stockholm", "oslo",
+        "copenhagen", "helsinki", "reykjavik", "dublin", "valletta", "luxembourg",
+        "vaduz",
+    ],
+    "AF": [
+        "cairo", "alexandria", "khartoum", "omdurman", "port sudan", "addis ababa",
+        "nairobi", "mombasa", "dar es salaam", "kampala", "kigali", "bujumbura",
+        "kinshasa", "brazzaville", "luanda", "harare", "lusaka", "maputo",
+        "johannesburg", "cape town", "durban", "pretoria", "abuja", "lagos", "kano",
+        "accra", "dakar", "bamako", "ouagadougou", "niamey", "ndjamena", "n'djamena",
+        "mogadishu", "djibouti", "asmara", "algiers", "tunis", "casablanca", "rabat",
+        "tripoli", "benghazi", "freetown", "monrovia", "abidjan", "conakry", "bangui",
+        "libreville", "malabo", "windhoek", "gaborone", "antananarivo", "lilongwe",
+        "juba", "wau",
+    ],
+    "AS": [
+        "beijing", "shanghai", "guangzhou", "wuhan", "hong kong", "taipei", "tokyo",
+        "osaka", "seoul", "pyongyang", "delhi", "new delhi", "mumbai", "kolkata",
+        "bangalore", "chennai", "islamabad", "lahore", "karachi", "peshawar",
+        "quetta", "dhaka", "chittagong", "kathmandu", "colombo", "male", "bangkok",
+        "hanoi", "ho chi minh city", "phnom penh", "vientiane", "yangon", "naypyidaw",
+        "kuala lumpur", "singapore", "jakarta", "surabaya", "manila", "cebu",
+        "ulaanbaatar", "rangoon", "mandalay", "lashio",
+    ],
+    "AM": [
+        "washington", "washington dc", "new york", "los angeles", "miami", "chicago",
+        "houston", "ottawa", "mexico city", "guadalajara", "havana", "bogota",
+        "medellin", "cali", "caracas", "lima", "quito", "brasilia", "rio de janeiro",
+        "sao paulo", "buenos aires", "santiago", "montevideo", "asuncion", "la paz",
+        "port-au-prince", "santo domingo", "san jose", "panama city", "managua",
+        "san salvador", "tegucigalda", "tegucigalpa", "guatemala city",
+    ],
+    "OC": ["canberra", "sydney", "melbourne", "auckland", "wellington", "port moresby"],
+}
+
+CITY_TO_REGION: dict[str, str] = {
+    city: region
+    for region, cities in _REGION_CITY_SETS.items()
+    for city in cities
+}
+
+# Map feed source region labels → geo-region codes used above
+_FEED_REGION_MAP: dict[str, str] = {
+    "Middle East": "ME",
+    "Europe":       "EU",
+    "Eastern Europe": "EU",
+    "Russia":       "EU",
+    "Africa":       "AF",
+    "Asia":         "AS",
+}
+
 # ── CAMEO Violence Codes (25) ──────────────────────────────────────────────────
 
 CAMEO_VIOLENCE_CODES = {
@@ -331,12 +406,24 @@ def compute_relevance(text: str) -> float:
     return min(1.0, hits / 6.0)
 
 
-def extract_location(text: str) -> tuple[str, float, float] | None:
+def extract_location(text: str, source_region: str | None = None) -> tuple[str, float, float] | None:
     tl = text.lower()
+    matches: list[tuple[str, float, float]] = []
     for city, (lat, lng) in CITY_COORDS.items():
         if re.search(r'\b' + re.escape(city) + r'\b', tl):
-            return city.title(), lat, lng
-    return None
+            matches.append((city, lat, lng))
+    if not matches:
+        return None
+    # With multiple matches, prefer the city whose region matches the article's source feed
+    if source_region and len(matches) > 1:
+        preferred_code = _FEED_REGION_MAP.get(source_region)
+        if preferred_code:
+            region_matches = [m for m in matches if CITY_TO_REGION.get(m[0]) == preferred_code]
+            if region_matches:
+                city, lat, lng = region_matches[0]
+                return city.title(), lat, lng
+    city, lat, lng = matches[0]
+    return city.title(), lat, lng
 
 
 def parse_date(entry) -> str:
@@ -548,7 +635,13 @@ def main():
             continue
         if art["category"] not in geo_cats:
             continue
-        loc = extract_location(art["title"] + " " + art["summary"])
+        # Require ≥2 keyword hits in the assigned category so a single stray keyword
+        # (e.g. "rally" in a tourism article) can't promote an article to a map event.
+        art_tl = (art["title"] + " " + art["summary"]).lower()
+        cat_hits = sum(1 for kw in CATEGORY_KEYWORDS.get(art["category"], []) if kw in art_tl)
+        if cat_hits < 2:
+            continue
+        loc = extract_location(art["title"] + " " + art["summary"], art["region"])
         if not loc:
             continue
         loc_name, lat, lng = loc
