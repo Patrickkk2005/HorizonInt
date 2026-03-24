@@ -9,6 +9,8 @@
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet.heat -->
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 
   <!-- marked.js (markdown rendering) -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -104,6 +106,10 @@
     <div id="map-header">
       <span class="panel-title">Global Event Map</span>
       <span class="panel-subtitle">Circle size = severity · Dashed ring = Romania impact</span>
+      <div id="map-controls">
+        <button class="map-toggle-btn" id="btn-heat">HEAT</button>
+        <button class="map-toggle-btn" id="btn-arcs">RO ARCS</button>
+      </div>
     </div>
     <div id="map"></div>
   </div>

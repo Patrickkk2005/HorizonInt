@@ -19,22 +19,42 @@ const CATEGORY_COLORS = {
 };
 
 const SEVERITY_RADII = { 1: 5, 2: 8, 3: 12 };
+const BUCHAREST = [44.4268, 26.1025];
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let activeCategory = 'all';
 let leafletMap     = null;
 let mapLayerGroup  = null;
+let heatLayer      = null;
+let arcLayerGroup  = null;
+let heatActive     = false;
+let arcsActive     = false;
 let allArticles    = [];
 let allEvents      = [];
 
-// ── UTC Clock ─────────────────────────────────────────────────────────────────
+// ── UTC + Romania Clock ────────────────────────────────────────────────────────
 function startClock() {
+  const roFmt = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Bucharest',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+  });
+  const roOffsetFmt = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Bucharest',
+    timeZoneName: 'shortOffset',
+  });
+
   function tick() {
     const now = new Date();
     const hh = String(now.getUTCHours()).padStart(2, '0');
     const mm = String(now.getUTCMinutes()).padStart(2, '0');
     const ss = String(now.getUTCSeconds()).padStart(2, '0');
-    document.getElementById('utc-clock').textContent = `${hh}:${mm}:${ss} UTC`;
+    const roTime = roFmt.format(now);
+    // Extract offset label (e.g. "GMT+3") for display
+    const offsetPart = roOffsetFmt.formatToParts(now).find(p => p.type === 'timeZoneName')?.value || 'EET';
+    document.getElementById('utc-clock').innerHTML =
+      `${hh}:${mm}:${ss} <span class="clock-label">UTC</span>` +
+      `<span class="clock-sep">|</span>` +
+      `${roTime} <span class="clock-label">RO&nbsp;${offsetPart}</span>`;
   }
   tick();
   setInterval(tick, 1000);
@@ -236,6 +256,77 @@ function initMap() {
   ).addTo(leafletMap);
 
   mapLayerGroup = L.layerGroup().addTo(leafletMap);
+  addLegend();
+}
+
+function addLegend() {
+  const legend = L.control({ position: 'bottomright' });
+  legend.onAdd = () => {
+    const div = L.DomUtil.create('div', 'map-legend');
+    const cats = Object.entries(CATEGORY_COLORS).filter(([k]) => k !== 'other');
+    div.innerHTML =
+      `<div class="legend-section-title">Categories</div>` +
+      cats.map(([cat, color]) =>
+        `<div class="legend-row"><span class="legend-dot" style="background:${color}"></span><span>${cat}</span></div>`
+      ).join('') +
+      `<div class="legend-section-title">Severity</div>
+       <div class="legend-sev">
+         <span class="legend-sev-item"><svg width="10" height="10"><circle cx="5" cy="5" r="4.5" fill="#6b7280"/></svg>&nbsp;1</span>
+         <span class="legend-sev-item"><svg width="16" height="16"><circle cx="8" cy="8" r="7.5" fill="#6b7280"/></svg>&nbsp;2</span>
+         <span class="legend-sev-item"><svg width="24" height="24"><circle cx="12" cy="12" r="11.5" fill="#6b7280"/></svg>&nbsp;3</span>
+       </div>`;
+    return div;
+  };
+  legend.addTo(leafletMap);
+}
+
+function toggleHeatmap() {
+  if (!window.__cachedGeojson) return;
+  const btn = document.getElementById('btn-heat');
+  heatActive = !heatActive;
+  if (heatActive) {
+    const pts = (window.__cachedGeojson.features || [])
+      .filter(f => f.geometry)
+      .map(f => {
+        const [lng, lat] = f.geometry.coordinates;
+        return [lat, lng, (f.properties.severity || 1) / 3];
+      });
+    heatLayer = L.heatLayer(pts, {
+      radius: 30, blur: 22, maxZoom: 6,
+      gradient: { 0.3: '#3b82f6', 0.6: '#f97316', 1.0: '#ef4444' },
+    }).addTo(leafletMap);
+    btn?.classList.add('active');
+  } else {
+    if (heatLayer) { leafletMap.removeLayer(heatLayer); heatLayer = null; }
+    btn?.classList.remove('active');
+  }
+}
+
+function toggleArcs() {
+  if (!window.__cachedGeojson) return;
+  const btn = document.getElementById('btn-arcs');
+  arcsActive = !arcsActive;
+  if (arcsActive) {
+    arcLayerGroup = L.layerGroup().addTo(leafletMap);
+    (window.__cachedGeojson.features || [])
+      .filter(f => f.properties?.romania_impact && f.properties.romania_impact !== 'none' && f.geometry)
+      .forEach(f => {
+        const [lng, lat] = f.geometry.coordinates;
+        L.polyline([BUCHAREST, [lat, lng]], {
+          color: '#facc15', weight: 1.5, opacity: 0.55, dashArray: '5 6',
+        }).addTo(arcLayerGroup);
+        // Marker dot on Bucharest end (once, but layerGroup deduplication is fine here)
+      });
+    // Mark Bucharest
+    L.circleMarker(BUCHAREST, {
+      radius: 6, color: '#facc15', fillColor: '#facc15',
+      fillOpacity: 0.9, weight: 2,
+    }).bindPopup('<div class="popup-title">Bucharest, Romania</div>').addTo(arcLayerGroup);
+    btn?.classList.add('active');
+  } else {
+    if (arcLayerGroup) { arcLayerGroup.remove(); arcLayerGroup = null; }
+    btn?.classList.remove('active');
+  }
 }
 
 function renderMap(geojson) {
@@ -245,14 +336,32 @@ function renderMap(geojson) {
   const features = geojson?.features || [];
   if (!features.length) return;
 
+  const bounds = [];
+
   features.forEach(feat => {
     const props = feat.properties || {};
     const [lng, lat] = feat.geometry?.coordinates || [0, 0];
     if (!lat && !lng) return;
 
+    bounds.push([lat, lng]);
+
     const cat    = props.category || 'other';
     const color  = catColor(cat);
     const radius = SEVERITY_RADII[props.severity] || 5;
+
+    // Pulsing ring for sev-3 events
+    if ((props.severity || 1) >= 3) {
+      L.marker([lat, lng], {
+        icon: L.divIcon({
+          className: '',
+          html: `<div class="pulse-ring" style="--ring-color:${color}"></div>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+        }),
+        interactive: false,
+        zIndexOffset: -100,
+      }).addTo(mapLayerGroup);
+    }
 
     // Romania impact → dashed yellow ring behind the marker
     if (props.romania_impact && props.romania_impact !== 'none') {
@@ -287,6 +396,20 @@ function renderMap(geojson) {
     marker.bindPopup(popup);
     marker.addTo(mapLayerGroup);
   });
+
+  // Auto-fit to all markers on first render
+  if (!window.__mapFit && bounds.length) {
+    leafletMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 4 });
+    window.__mapFit = true;
+  }
+
+  // Refresh heatmap if active
+  if (heatActive && heatLayer) {
+    leafletMap.removeLayer(heatLayer);
+    heatLayer = null;
+    heatActive = false;
+    toggleHeatmap();
+  }
 }
 
 // ── Category Filter ───────────────────────────────────────────────────────────
@@ -352,6 +475,8 @@ async function init() {
   startClock();
   setupFilters();
   initMap();
+  document.getElementById('btn-heat')?.addEventListener('click', toggleHeatmap);
+  document.getElementById('btn-arcs')?.addEventListener('click', toggleArcs);
 
   // Parallel fetch all data
   const [stats, briefing, articles, events, geojson] = await Promise.all([

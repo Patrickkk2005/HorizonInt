@@ -102,8 +102,17 @@ body {
 .utc-clock {
   font-family: var(--mono);
   font-size: 0.85rem;
-  color: var(--text-dim);
+  color: var(--text-bright);
   letter-spacing: 0.05em;
+}
+.clock-label {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+.clock-sep {
+  margin: 0 8px;
+  color: var(--border-hi);
 }
 
 .stat-chip {
@@ -392,6 +401,94 @@ aside, #main-grid section {
   flex: 1;
   min-height: 0;
   background: #060810;
+}
+
+/* ── Map controls ────────────────────────────────────────────────────────── */
+#map-controls {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+
+.map-toggle-btn {
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-hi);
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.map-toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
+.map-toggle-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ── Map legend ───────────────────────────────────────────────────────────── */
+.map-legend {
+  background: rgba(17, 19, 24, 0.92);
+  border: 1px solid var(--border-hi);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  backdrop-filter: blur(8px);
+  min-width: 110px;
+}
+.legend-section-title {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-bright);
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.legend-section-title + .legend-section-title,
+.legend-sev + .legend-section-title { margin-top: 8px; }
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+  text-transform: capitalize;
+}
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+.legend-sev {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.legend-sev-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ── Pulse ring (sev-3 markers) ──────────────────────────────────────────── */
+.pulse-ring {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--ring-color, #ef4444);
+  animation: pulse-map 2s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes pulse-map {
+  0%   { transform: scale(0.4); opacity: 0.9; }
+  100% { transform: scale(2.2); opacity: 0; }
 }
 
 /* ── Leaflet popup overrides ─────────────────────────────────────────────── */
