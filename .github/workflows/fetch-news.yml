@@ -24,7 +24,7 @@ jobs:
         run: |
           git fetch origin gh-pages 2>/dev/null || true
           mkdir -p public/data
-          for f in articles.json events.json events.geojson stats.json; do
+          for f in articles.json events.json events.geojson stats.json briefing.json; do
             git show "origin/gh-pages:data/$f" > "public/data/$f" 2>/dev/null \
               && echo "Restored $f from gh-pages" \
               || echo "No existing $f, starting fresh"

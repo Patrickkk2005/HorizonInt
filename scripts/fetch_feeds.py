@@ -42,7 +42,7 @@ log = logging.getLogger(__name__)
 # ── Config ────────────────────────────────────────────────────────────────────
 
 OUTPUT_DIR      = Path(os.getenv("OUTPUT_DIR", "public/data"))
-MAX_ARTICLES    = 500
+MAX_ARTICLES    = 50
 MAX_EVENTS      = 200
 RELEVANCE_THRESH = 0.35
 FUZZY_THRESH    = 85
@@ -457,6 +457,110 @@ def get_ai_client():
     return None, None, None
 
 
+# ── Hybrid Romania classifier ─────────────────────────────────────────────────
+
+_DIRECT_KEYWORDS = {
+    # Country / nationality
+    "romania", "romanian", "romanians",
+    # Capital and major cities (with and without diacritics)
+    "bucharest", "bucurești",
+    "cluj", "cluj-napoca",
+    "timișoara", "timisoara",
+    "iași", "iasi",
+    "constanța", "constanta",
+    "brașov", "brasov",
+    "ploiești", "ploiesti",
+    "galați", "galati",
+    "craiova", "sibiu", "oradea", "arad", "bacău", "bacau",
+    "suceava", "focșani", "focsani", "pitești", "pitesti",
+    "târgu mureș", "targu mures", "brăila", "braila",
+    # Moldova (closely tied to Romania — language, diaspora, EU accession)
+    "chisinau", "chișinău", "moldovan",
+    # Key Romanian state companies often mentioned by name in English press
+    "petrom", "romgaz", "transgaz", "hidroelectrica", "banca transilvania",
+}
+
+_ECONOMIC_KEYWORDS = {
+    # EU monetary / fiscal policy
+    "ecb", "european central bank",
+    "eu tariff", "eu trade", "eu budget",
+    "cohesion fund", "structural fund", "recovery fund",
+    "schengen", "euro adoption", "eurozone entry",
+    # Energy — pipelines and prices
+    "energy price", "gas price", "oil price", "lng price",
+    "nord stream", "nordstream", "turkstream", "turk stream",
+    "opec", "opec+",
+    "eu energy", "energy union",
+    "carbon border", "cbam",
+    # Trade routes Romania depends on
+    "black sea trade", "danube", "danube shipping",
+    # Agriculture — Romania is a top EU grain/oilseed exporter
+    "grain export", "wheat price", "corn price", "maize price",
+    "sunflower oil", "sunflower price",
+    "ukraine grain", "grain corridor", "grain deal",
+    "fertilizer price", "fertiliser price",
+    # Sanctions on Russia/Belarus directly affect Romanian trade and energy
+    "sanctions on russia", "russian sanctions", "sanctions on belarus",
+    "belarusian sanctions",
+    # Macro conditions in Romania's top trade partners
+    "german recession", "german economy", "german industry",
+    "eu recession", "eurozone recession",
+    "imf loan", "imf bailout",
+    "eu inflation", "eurozone inflation",
+    # Refugee/migration burden on public finances
+    "ukrainian refugee", "refugee crisis europe",
+    # Ukraine reconstruction spending (Romanian contractors, cross-border trade)
+    "ukraine reconstruction",
+}
+
+_SECURITY_KEYWORDS = {
+    # NATO
+    "nato", "nato summit", "nato flank", "eastern flank",
+    "nato ally", "nato member", "nato troops", "nato article 5",
+    "nato enlargement", "nato expansion",
+    # Ukraine conflict — geography close to Romania
+    "ukraine war", "ukraine conflict", "ukraine front",
+    "zelensky", "zelenskyy",
+    "donbas", "donbass",
+    "crimea",
+    "odessa", "odesa",          # Black Sea port, ~200 km from Romanian border
+    "zaporizhzhia", "zaporizhia",  # Nuclear plant — fallout risk for Romania
+    "kherson",                  # Southern Ukraine, Black Sea region
+    # Moldova / Transnistria
+    "moldova", "transnistria",
+    # Black Sea military
+    "black sea fleet", "black sea security", "black sea navy",
+    "russian navy", "snake island",
+    # Balkans
+    "balkans", "serbia", "kosovo", "bosnia", "north macedonia",
+    # Russian military posture
+    "russian military", "russian forces", "russian troops",
+    "russian hybrid", "hybrid warfare", "hybrid attack",
+    "wagner", "wagner group",
+    # Belarus — Russia's forward staging area, NATO eastern flank
+    "belarus", "lukashenko", "belarusian forces", "belarusian military",
+    "kaliningrad",
+    # Nuclear — Russia-specific framing
+    "russian nuclear", "nuclear blackmail", "nuclear posture",
+    "nuclear europe",
+    # Air/missile defence relevant to Romania
+    "patriot missile", "air defense system", "missile shield",
+    "deveselu",         # NATO missile shield base in Romania (likely triggers direct too)
+}
+
+
+def rule_classify(title: str, summary: str) -> str | None:
+    """Fast keyword pre-classification. Returns label or None if ambiguous."""
+    tl = (title + " " + summary).lower()
+    if any(kw in tl for kw in _DIRECT_KEYWORDS):
+        return "direct"
+    if any(kw in tl for kw in _SECURITY_KEYWORDS):
+        return "security"
+    if any(kw in tl for kw in _ECONOMIC_KEYWORDS):
+        return "economic"
+    return None
+
+
 def classify_romania_impact_batch(articles: list[dict], client_type: str,
                                    client, model: str) -> list[str]:
     """Return a list of labels ('direct'|'economic'|'security'|'none') same order as articles."""
@@ -584,33 +688,35 @@ def main():
 
     log.info("Found %d new articles", len(new_articles))
 
-    # Classify Romania impact in batches of 30
+    # Classify Romania impact — hybrid: rules first, AI only for ambiguous
     if new_articles:
-        client_type, client, model = get_ai_client()
-        if client:
-            log.info("Classifying Romania impact via %s (%s)…", client_type, model)
-            for i in range(0, len(new_articles), BATCH_SIZE):
-                batch = new_articles[i:i + BATCH_SIZE]
-                labels = classify_romania_impact_batch(batch, client_type, client, model)
-                for art, label in zip(batch, labels):
-                    art["romania_impact"] = label
-        else:
-            log.warning("No AI API key found; skipping Romania classification")
-            # Fallback: rule-based
-            economic_keywords = {
-                "energy price", "gas price", "oil price", "ecb", "interest rate",
-                "eu tariff", "black sea", "danube", "grain export", "wheat price",
-                "sanctions", "trade war", "imf", "world bank", "inflation",
-            }
-            security_keywords = {"nato", "ukraine", "moldova", "black sea", "balkans"}
-            for art in new_articles:
-                tl = (art["title"] + " " + art["summary"]).lower()
-                if "romania" in tl:
-                    art["romania_impact"] = "direct"
-                elif any(kw in tl for kw in economic_keywords):
-                    art["romania_impact"] = "economic"
-                elif any(kw in tl for kw in security_keywords):
-                    art["romania_impact"] = "security"
+        # Pass 1: rule-based pre-classification
+        ambiguous = []
+        for art in new_articles:
+            label = rule_classify(art["title"], art.get("summary", ""))
+            if label is not None:
+                art["romania_impact"] = label
+            else:
+                ambiguous.append(art)
+
+        log.info(
+            "Rule-classified %d articles; %d ambiguous → AI",
+            len(new_articles) - len(ambiguous), len(ambiguous),
+        )
+
+        # Pass 2: AI for ambiguous articles only
+        if ambiguous:
+            client_type, client, model = get_ai_client()
+            if client:
+                log.info("Classifying %d ambiguous articles via %s (%s)…",
+                         len(ambiguous), client_type, model)
+                for i in range(0, len(ambiguous), BATCH_SIZE):
+                    batch = ambiguous[i:i + BATCH_SIZE]
+                    labels = classify_romania_impact_batch(batch, client_type, client, model)
+                    for art, label in zip(batch, labels):
+                        art["romania_impact"] = label
+            else:
+                log.warning("No AI API key found; ambiguous articles left as 'none'")
 
     # Merge + cap
     all_articles = new_articles + existing
