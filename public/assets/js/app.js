@@ -1,8 +1,11 @@
 /* ── HorizonInt — Main App ───────────────────────────────────────────────── */
 
+// Self-hosted backend via Cloudflare Tunnel — replace with your actual tunnel domain.
+const SELF_HOSTED_API = 'https://REPLACE_WITH_YOUR_CLOUDFLARE_DOMAIN';
+
 const DATA_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
   ? './data'
-  : './data';  // same for GH Pages — served relative to index.html
+  : `${SELF_HOSTED_API}/data`;
 
 const CATEGORY_COLORS = {
   conflict:    '#ef4444',
