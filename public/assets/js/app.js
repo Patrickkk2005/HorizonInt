@@ -1,7 +1,7 @@
 /* ── HorizonInt — Main App ───────────────────────────────────────────────── */
 
 // Self-hosted backend via Cloudflare Tunnel — replace with your actual tunnel domain.
-const SELF_HOSTED_API = 'https://REPLACE_WITH_YOUR_CLOUDFLARE_DOMAIN';
+const SELF_HOSTED_API = 'http://horizon.n8n-xpert.online';
 
 const DATA_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
   ? './data'
