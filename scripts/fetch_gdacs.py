@@ -11,7 +11,14 @@ import hashlib
 import json
 import logging
 import os
-from datetime import datetime, timezone
+try:
+    import config
+    for _k, _e in [('OPENAI_API_KEY','OPENAI_API_KEY'),('ANTHROPIC_API_KEY','ANTHROPIC_API_KEY'),('OUTPUT_DIR','OUTPUT_DIR')]:
+        if hasattr(config, _k) and not os.environ.get(_e):
+            os.environ[_e] = getattr(config, _k)
+except ImportError:
+    pass
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -127,7 +134,9 @@ def main():
         for ev in new_events if ev["id"] not in existing_ids
     ]
 
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
     all_features = new_features + existing_geo.get("features", [])
+    all_features = [f for f in all_features if f.get("properties", {}).get("occurred_at", "") >= cutoff]
     all_features = all_features[:400]
     geojson_path.write_text(
         json.dumps({"type": "FeatureCollection", "features": all_features},
@@ -148,6 +157,7 @@ def main():
     new_timeline = [e for e in new_events if e["id"] not in existing_event_ids]
     all_events = (new_timeline + existing_events)
     all_events.sort(key=lambda e: e.get("occurred_at", ""), reverse=True)
+    all_events = [e for e in all_events if e.get("occurred_at", "") >= cutoff]
     all_events = all_events[:400]
     events_path.write_text(json.dumps(all_events, ensure_ascii=False, indent=2))
     log.info("events.json updated: %d total events", len(all_events))

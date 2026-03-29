@@ -11,6 +11,13 @@ import hashlib
 import json
 import logging
 import os
+try:
+    import config
+    for _k, _e in [('OPENAI_API_KEY','OPENAI_API_KEY'),('ANTHROPIC_API_KEY','ANTHROPIC_API_KEY'),('OUTPUT_DIR','OUTPUT_DIR')]:
+        if hasattr(config, _k) and not os.environ.get(_e):
+            os.environ[_e] = getattr(config, _k)
+except ImportError:
+    pass
 import re
 import sys
 import time
@@ -770,8 +777,10 @@ def main():
             "occurred_at":   art["published_at"],
         })
 
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
     all_events = new_events + existing_events
     all_events.sort(key=lambda e: e.get("occurred_at", ""), reverse=True)
+    all_events = [e for e in all_events if e.get("occurred_at", "") >= cutoff]
     all_events = all_events[:MAX_EVENTS]
 
     # Build GeoJSON (events only — GDELT appends separately)
@@ -794,6 +803,7 @@ def main():
             })
 
     all_features = new_features + existing_geojson.get("features", [])
+    all_features = [f for f in all_features if f.get("properties", {}).get("occurred_at", "") >= cutoff]
     all_features = all_features[:MAX_EVENTS]
 
     # Stats

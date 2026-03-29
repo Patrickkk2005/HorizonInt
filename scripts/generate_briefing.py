@@ -8,6 +8,13 @@ Loads top articles and generates a markdown intelligence briefing via AI API.
 import json
 import logging
 import os
+try:
+    import config
+    for _k, _e in [('OPENAI_API_KEY','OPENAI_API_KEY'),('ANTHROPIC_API_KEY','ANTHROPIC_API_KEY'),('OUTPUT_DIR','OUTPUT_DIR')]:
+        if hasattr(config, _k) and not os.environ.get(_e):
+            os.environ[_e] = getattr(config, _k)
+except ImportError:
+    pass
 import re
 import sys
 from datetime import datetime, timezone

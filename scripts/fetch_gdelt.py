@@ -11,8 +11,15 @@ import io
 import json
 import logging
 import os
+try:
+    import config
+    for _k, _e in [('OPENAI_API_KEY','OPENAI_API_KEY'),('ANTHROPIC_API_KEY','ANTHROPIC_API_KEY'),('OUTPUT_DIR','OUTPUT_DIR')]:
+        if hasattr(config, _k) and not os.environ.get(_e):
+            os.environ[_e] = getattr(config, _k)
+except ImportError:
+    pass
 import zipfile
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 import requests
@@ -204,7 +211,9 @@ def main():
             "properties": {k: v for k, v in ev.items() if k not in ("lat", "lng")},
         })
 
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
     all_features = new_features + existing.get("features", [])
+    all_features = [f for f in all_features if f.get("properties", {}).get("occurred_at", "") >= cutoff]
     # Cap to avoid huge files; keep most recent
     all_features = all_features[:MAX_GDELT_EVENTS + 200]
 
@@ -225,6 +234,7 @@ def main():
     new_timeline = [e for e in new_events if e["id"] not in existing_event_ids]
     all_events = new_timeline + existing_events
     all_events.sort(key=lambda e: e.get("occurred_at", ""), reverse=True)
+    all_events = [e for e in all_events if e.get("occurred_at", "") >= cutoff]
     all_events = all_events[:300]
     events_path.write_text(json.dumps(all_events, ensure_ascii=False, indent=2))
     log.info("events.json updated: %d total events", len(all_events))
