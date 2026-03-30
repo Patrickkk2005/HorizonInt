@@ -15,6 +15,11 @@
   <!-- marked.js (markdown rendering) -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
+  <!-- html2canvas (map capture) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- jsPDF (PDF generation) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
   <!-- App styles -->
   <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
@@ -31,6 +36,12 @@
       <span id="utc-clock" class="utc-clock">--:--:-- UTC</span>
     </div>
     <div class="header-right">
+      <button id="btn-export" class="export-btn" title="Download intelligence report as PDF">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        <span class="export-btn-label">EXPORT PDF</span>
+      </button>
       <span class="stat-chip" id="stat-articles">
         <span class="stat-num" id="article-count">–</span>
         <span class="stat-label">articles</span>

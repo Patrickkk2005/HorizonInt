@@ -472,6 +472,254 @@ function escHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+// ── PDF Export ────────────────────────────────────────────────────────────────
+async function exportPDF() {
+  const btn = document.getElementById('btn-export');
+  const labelEl = btn?.querySelector('.export-btn-label');
+  if (btn) { btn.disabled = true; if (labelEl) labelEl.textContent = 'GENERATING…'; }
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+
+    const pageW    = 210;
+    const margin   = 15;
+    const contentW = pageW - margin * 2;
+    let y = margin;
+
+    const now        = new Date();
+    const utcStr     = now.toUTCString();
+    const filterLabel = activeCategory === 'all'
+      ? 'All Categories'
+      : activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1);
+
+    // ── Page header ───────────────────────────────────────────────────────────
+    doc.setFillColor(10, 12, 16);
+    doc.rect(0, 0, pageW, 32, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(240, 244, 255);
+    doc.text('HORIZONINT', margin, y + 8);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(180, 185, 200);
+    doc.text('Geopolitical Intelligence Report', margin, y + 15);
+
+    doc.setFontSize(7.5);
+    doc.setTextColor(107, 114, 128);
+    doc.text(`Generated: ${utcStr}`, margin, y + 21);
+    doc.text(`Active filter: ${filterLabel}`, margin, y + 27);
+
+    // Separator line
+    doc.setDrawColor(30, 34, 48);
+    doc.setLineWidth(0.4);
+    doc.line(margin, y + 30, pageW - margin, y + 30);
+    y = y + 35;
+
+    // ── Summary statistics ────────────────────────────────────────────────────
+    const visArticles = allArticles.filter(a => activeCategory === 'all' || a.category === activeCategory);
+    const visEvents   = allEvents.filter(e => activeCategory === 'all' || e.category === activeCategory);
+
+    const catCounts = {};
+    visArticles.forEach(a => {
+      const cat = a.category || 'other';
+      catCounts[cat] = (catCounts[cat] || 0) + 1;
+    });
+
+    const locCounts = {};
+    visEvents.forEach(e => {
+      if (e.location_name) locCounts[e.location_name] = (locCounts[e.location_name] || 0) + 1;
+    });
+    const top5Locs = Object.entries(locCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const topCats  = Object.entries(catCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+
+    doc.setFillColor(17, 19, 24);
+    doc.rect(margin, y, contentW, 30, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(250, 204, 21);
+    doc.text('SUMMARY STATISTICS', margin + 4, y + 6);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(212, 217, 232);
+    doc.text(
+      `Articles: ${allArticles.length.toLocaleString()} total  |  ${visArticles.length.toLocaleString()} visible`,
+      margin + 4, y + 13
+    );
+    doc.text(
+      `Events: ${allEvents.length.toLocaleString()} total  |  ${visEvents.length.toLocaleString()} visible`,
+      margin + 4, y + 19
+    );
+
+    if (topCats.length) {
+      const catStr = topCats.map(([c, n]) => `${c} (${n})`).join('  ·  ');
+      doc.text(`Category breakdown: ${catStr}`, margin + 4, y + 25);
+    }
+    if (top5Locs.length) {
+      const locStr = top5Locs.map(([l, n]) => `${l} (${n})`).join('  ·  ');
+      doc.setTextColor(180, 185, 200);
+      doc.text(`Top locations: ${locStr}`, margin + 4, y + 30);
+    }
+
+    y += 35;
+
+    // ── Map capture ───────────────────────────────────────────────────────────
+    let mapCaptured = false;
+    try {
+      const mapEl = document.getElementById('map');
+      if (mapEl && window.html2canvas) {
+        const canvas = await window.html2canvas(mapEl, {
+          useCORS: true,
+          allowTaint: false,
+          logging: false,
+          scale: 1.5,
+        });
+        const imgData = canvas.toDataURL('image/jpeg', 0.82);
+        const rawH    = Math.round(contentW * canvas.height / canvas.width);
+        const imgH    = Math.min(rawH, 72);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(250, 204, 21);
+        doc.text('GLOBAL EVENT MAP', margin, y + 5);
+        y += 8;
+
+        doc.addImage(imgData, 'JPEG', margin, y, contentW, imgH);
+        y += imgH + 6;
+        mapCaptured = true;
+      }
+    } catch (_err) {
+      // CORS or canvas error — skip gracefully
+    }
+
+    if (!mapCaptured) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(7.5);
+      doc.setTextColor(107, 114, 128);
+      doc.text('[Map image unavailable — tile layer CORS restriction prevents capture]', margin, y + 5);
+      y += 11;
+    }
+
+    // ── Events table ──────────────────────────────────────────────────────────
+    const top10 = [...visEvents]
+      .sort((a, b) => new Date(b.occurred_at || 0) - new Date(a.occurred_at || 0))
+      .slice(0, 10);
+
+    if (top10.length) {
+      if (y > 218) { doc.addPage(); y = margin; }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(250, 204, 21);
+      doc.text('RECENT EVENTS — TOP 10 VISIBLE', margin, y + 5);
+      y += 9;
+
+      // Column definitions (x = absolute, w = max chars hint)
+      const cols = [
+        { label: 'Date (UTC)',  x: margin,       w: 28 },
+        { label: 'Location',    x: margin + 28,  w: 28 },
+        { label: 'Category',    x: margin + 58,  w: 20 },
+        { label: 'Sev',         x: margin + 80,  w: 7  },
+        { label: 'Headline',    x: margin + 89,  w: 68 },
+        { label: 'Source',      x: margin + 159, w: 31 },
+      ];
+
+      // Header row
+      doc.setFillColor(22, 25, 32);
+      doc.rect(margin, y, contentW, 6, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.setTextColor(180, 185, 200);
+      cols.forEach(c => doc.text(c.label, c.x + 1, y + 4));
+      y += 7;
+
+      const trunc = (s, n) => {
+        if (!s) return '–';
+        return s.length > n ? s.substring(0, n - 1) + '…' : s;
+      };
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+
+      top10.forEach((ev, i) => {
+        if (y > 272) { doc.addPage(); y = margin; }
+        const rowH = 6.5;
+        if (i % 2 === 0) {
+          doc.setFillColor(17, 19, 24);
+          doc.rect(margin, y - 0.5, contentW, rowH, 'F');
+        }
+        doc.setTextColor(212, 217, 232);
+
+        const dateStr = ev.occurred_at
+          ? new Date(ev.occurred_at).toISOString().replace('T', ' ').substring(0, 16) + 'Z'
+          : '–';
+
+        doc.text(trunc(dateStr, 19),                cols[0].x + 1, y + 4);
+        doc.text(trunc(ev.location_name || '', 18), cols[1].x + 1, y + 4);
+        doc.text(trunc(ev.category || '', 13),      cols[2].x + 1, y + 4);
+        doc.text(String(ev.severity || 1),          cols[3].x + 1, y + 4);
+        doc.text(trunc(ev.title || '', 44),         cols[4].x + 1, y + 4);
+        doc.text(trunc(ev.source_name || '', 20),   cols[5].x + 1, y + 4);
+
+        y += rowH;
+      });
+      y += 6;
+    }
+
+    // ── AI briefing ───────────────────────────────────────────────────────────
+    const briefingEl   = document.getElementById('briefing-content');
+    const briefingText = briefingEl ? (briefingEl.innerText || briefingEl.textContent || '') : '';
+
+    if (briefingText.trim()) {
+      if (y > 240) { doc.addPage(); y = margin; }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(250, 204, 21);
+      doc.text('AI INTELLIGENCE BRIEFING', margin, y + 5);
+      y += 10;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(212, 217, 232);
+
+      const cleaned = briefingText.replace(/\n{3,}/g, '\n\n').trim();
+      const lines   = doc.splitTextToSize(cleaned, contentW);
+      lines.forEach(line => {
+        if (y > 278) { doc.addPage(); y = margin; }
+        doc.text(line, margin, y);
+        y += 4;
+      });
+    }
+
+    // ── Footer on every page ──────────────────────────────────────────────────
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p);
+      doc.setDrawColor(30, 34, 48);
+      doc.setLineWidth(0.3);
+      doc.line(margin, 287, pageW - margin, 287);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      doc.setTextColor(107, 114, 128);
+      doc.text(
+        `HORIZONINT Intelligence Report  ·  ${utcStr}  ·  Page ${p} / ${totalPages}`,
+        margin, 292
+      );
+    }
+
+    const filename = `horizonint_report_${now.toISOString().split('T')[0]}.pdf`;
+    doc.save(filename);
+
+  } finally {
+    if (btn) { btn.disabled = false; if (labelEl) labelEl.textContent = 'EXPORT PDF'; }
+  }
+}
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 async function init() {
   startClock();
@@ -479,6 +727,7 @@ async function init() {
   initMap();
   document.getElementById('btn-heat')?.addEventListener('click', toggleHeatmap);
   document.getElementById('btn-arcs')?.addEventListener('click', toggleArcs);
+  document.getElementById('btn-export')?.addEventListener('click', exportPDF);
 
   // Parallel fetch all data
   const [stats, briefing, articles, events, geojson] = await Promise.all([

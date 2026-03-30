@@ -130,6 +130,37 @@ body {
 .stat-label { color: var(--text-dim); }
 .updated-chip { color: var(--text-dim); font-size: 0.7rem; }
 
+/* ── Export Button ────────────────────────────────────────────────────────── */
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--border-hi);
+  border-radius: 6px;
+  padding: 4px 10px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.export-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text-bright);
+  background: rgba(59, 130, 246, 0.08);
+}
+.export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.export-btn svg {
+  flex-shrink: 0;
+}
+
 /* ── Filter Bar ───────────────────────────────────────────────────────────── */
 #filter-bar {
   position: sticky;
