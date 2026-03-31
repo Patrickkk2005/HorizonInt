@@ -483,126 +483,89 @@ async function exportPDF() {
     const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
 
     const pageW    = 210;
-    const margin   = 15;
+    const margin   = 18;
     const contentW = pageW - margin * 2;
     let y = margin;
 
-    const now        = new Date();
-    const utcStr     = now.toUTCString();
+    const C_BLACK   = [20, 20, 24];
+    const C_MID     = [80, 85, 100];
+    const C_LIGHT   = [140, 145, 158];
+    const C_RULE    = [220, 222, 228];
+
+    const now         = new Date();
+    const utcStr      = now.toUTCString();
     const filterLabel = activeCategory === 'all'
       ? 'All Categories'
       : activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1);
 
-    // ── Page header ───────────────────────────────────────────────────────────
-    doc.setFillColor(10, 12, 16);
-    doc.rect(0, 0, pageW, 32, 'F');
+    const rule = (yPos, weight = 0.25) => {
+      doc.setDrawColor(...C_RULE);
+      doc.setLineWidth(weight);
+      doc.line(margin, yPos, pageW - margin, yPos);
+    };
 
+    const sectionTitle = (label, yPos) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(...C_LIGHT);
+      doc.text(label.toUpperCase(), margin, yPos);
+      rule(yPos + 2);
+      return yPos + 7;
+    };
+
+    // ── Header ────────────────────────────────────────────────────────────────
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.setTextColor(240, 244, 255);
-    doc.text('HORIZONINT', margin, y + 8);
+    doc.setFontSize(20);
+    doc.setTextColor(...C_BLACK);
+    doc.text('HorizonInt', margin, y + 8);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(180, 185, 200);
+    doc.setFontSize(8.5);
+    doc.setTextColor(...C_MID);
     doc.text('Geopolitical Intelligence Report', margin, y + 15);
 
     doc.setFontSize(7.5);
-    doc.setTextColor(107, 114, 128);
-    doc.text(`Generated: ${utcStr}`, margin, y + 21);
-    doc.text(`Active filter: ${filterLabel}`, margin, y + 27);
+    doc.setTextColor(...C_LIGHT);
+    doc.text(`${utcStr}  ·  Filter: ${filterLabel}`, margin, y + 21);
 
-    // Separator line
-    doc.setDrawColor(30, 34, 48);
-    doc.setLineWidth(0.4);
-    doc.line(margin, y + 30, pageW - margin, y + 30);
-    y = y + 35;
+    rule(y + 26, 0.5);
+    y += 32;
 
-    // ── Summary statistics ────────────────────────────────────────────────────
+    // ── Statistics ────────────────────────────────────────────────────────────
     const visArticles = allArticles.filter(a => activeCategory === 'all' || a.category === activeCategory);
     const visEvents   = allEvents.filter(e => activeCategory === 'all' || e.category === activeCategory);
 
     const catCounts = {};
-    visArticles.forEach(a => {
-      const cat = a.category || 'other';
-      catCounts[cat] = (catCounts[cat] || 0) + 1;
-    });
+    visArticles.forEach(a => { const c = a.category || 'other'; catCounts[c] = (catCounts[c] || 0) + 1; });
 
     const locCounts = {};
-    visEvents.forEach(e => {
-      if (e.location_name) locCounts[e.location_name] = (locCounts[e.location_name] || 0) + 1;
-    });
-    const top5Locs = Object.entries(locCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    visEvents.forEach(e => { if (e.location_name) locCounts[e.location_name] = (locCounts[e.location_name] || 0) + 1; });
+
     const topCats  = Object.entries(catCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    const top5Locs = Object.entries(locCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
-    doc.setFillColor(17, 19, 24);
-    doc.rect(margin, y, contentW, 30, 'F');
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.setTextColor(250, 204, 21);
-    doc.text('SUMMARY STATISTICS', margin + 4, y + 6);
+    y = sectionTitle('Summary', y);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
-    doc.setTextColor(212, 217, 232);
-    doc.text(
-      `Articles: ${allArticles.length.toLocaleString()} total  |  ${visArticles.length.toLocaleString()} visible`,
-      margin + 4, y + 13
-    );
-    doc.text(
-      `Events: ${allEvents.length.toLocaleString()} total  |  ${visEvents.length.toLocaleString()} visible`,
-      margin + 4, y + 19
-    );
+    doc.setFontSize(8);
+    doc.setTextColor(...C_BLACK);
+    doc.text(`Articles: ${visArticles.length.toLocaleString()} visible of ${allArticles.length.toLocaleString()} total`, margin, y);
+    doc.text(`Events: ${visEvents.length.toLocaleString()} visible of ${allEvents.length.toLocaleString()} total`, margin + 90, y);
+    y += 6;
 
     if (topCats.length) {
-      const catStr = topCats.map(([c, n]) => `${c} (${n})`).join('  ·  ');
-      doc.text(`Category breakdown: ${catStr}`, margin + 4, y + 25);
+      doc.setFontSize(7.5);
+      doc.setTextColor(...C_MID);
+      doc.text('By category:  ' + topCats.map(([c, n]) => `${c} (${n})`).join('  ·  '), margin, y);
+      y += 5;
     }
     if (top5Locs.length) {
-      const locStr = top5Locs.map(([l, n]) => `${l} (${n})`).join('  ·  ');
-      doc.setTextColor(180, 185, 200);
-      doc.text(`Top locations: ${locStr}`, margin + 4, y + 30);
-    }
-
-    y += 35;
-
-    // ── Map capture ───────────────────────────────────────────────────────────
-    let mapCaptured = false;
-    try {
-      const mapEl = document.getElementById('map');
-      if (mapEl && window.html2canvas) {
-        const canvas = await window.html2canvas(mapEl, {
-          useCORS: true,
-          allowTaint: false,
-          logging: false,
-          scale: 1.5,
-        });
-        const imgData = canvas.toDataURL('image/jpeg', 0.82);
-        const rawH    = Math.round(contentW * canvas.height / canvas.width);
-        const imgH    = Math.min(rawH, 72);
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8);
-        doc.setTextColor(250, 204, 21);
-        doc.text('GLOBAL EVENT MAP', margin, y + 5);
-        y += 8;
-
-        doc.addImage(imgData, 'JPEG', margin, y, contentW, imgH);
-        y += imgH + 6;
-        mapCaptured = true;
-      }
-    } catch (_err) {
-      // CORS or canvas error — skip gracefully
-    }
-
-    if (!mapCaptured) {
-      doc.setFont('helvetica', 'italic');
       doc.setFontSize(7.5);
-      doc.setTextColor(107, 114, 128);
-      doc.text('[Map image unavailable — tile layer CORS restriction prevents capture]', margin, y + 5);
-      y += 11;
+      doc.setTextColor(...C_MID);
+      doc.text('Top locations:  ' + top5Locs.map(([l, n]) => `${l} (${n})`).join('  ·  '), margin, y);
+      y += 5;
     }
+    y += 6;
 
     // ── Events table ──────────────────────────────────────────────────────────
     const top10 = [...visEvents]
@@ -610,89 +573,68 @@ async function exportPDF() {
       .slice(0, 10);
 
     if (top10.length) {
-      if (y > 218) { doc.addPage(); y = margin; }
+      if (y > 220) { doc.addPage(); y = margin; }
+      y = sectionTitle('Recent Events — top 10', y);
 
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.setTextColor(250, 204, 21);
-      doc.text('RECENT EVENTS — TOP 10 VISIBLE', margin, y + 5);
-      y += 9;
-
-      // Column definitions (x = absolute, w = max chars hint)
       const cols = [
-        { label: 'Date (UTC)',  x: margin,       w: 28 },
-        { label: 'Location',    x: margin + 28,  w: 28 },
-        { label: 'Category',    x: margin + 58,  w: 20 },
-        { label: 'Sev',         x: margin + 80,  w: 7  },
-        { label: 'Headline',    x: margin + 89,  w: 68 },
-        { label: 'Source',      x: margin + 159, w: 31 },
+        { label: 'Date (UTC)',  x: margin,       chars: 17 },
+        { label: 'Location',    x: margin + 34,  chars: 18 },
+        { label: 'Cat.',        x: margin + 68,  chars: 12 },
+        { label: 'Sev',         x: margin + 88,  chars: 3  },
+        { label: 'Headline',    x: margin + 96,  chars: 46 },
+        { label: 'Source',      x: margin + 160, chars: 22 },
       ];
 
-      // Header row
-      doc.setFillColor(22, 25, 32);
-      doc.rect(margin, y, contentW, 6, 'F');
+      const trunc = (s, n) => (!s ? '–' : s.length > n ? s.substring(0, n - 1) + '…' : s);
+
+      // Column headers
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(6.5);
-      doc.setTextColor(180, 185, 200);
-      cols.forEach(c => doc.text(c.label, c.x + 1, y + 4));
-      y += 7;
-
-      const trunc = (s, n) => {
-        if (!s) return '–';
-        return s.length > n ? s.substring(0, n - 1) + '…' : s;
-      };
+      doc.setTextColor(...C_LIGHT);
+      cols.forEach(c => doc.text(c.label, c.x, y));
+      y += 4;
+      rule(y);
+      y += 4;
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.5);
+      doc.setFontSize(7);
+      doc.setTextColor(...C_BLACK);
 
       top10.forEach((ev, i) => {
         if (y > 272) { doc.addPage(); y = margin; }
-        const rowH = 6.5;
-        if (i % 2 === 0) {
-          doc.setFillColor(17, 19, 24);
-          doc.rect(margin, y - 0.5, contentW, rowH, 'F');
-        }
-        doc.setTextColor(212, 217, 232);
-
         const dateStr = ev.occurred_at
           ? new Date(ev.occurred_at).toISOString().replace('T', ' ').substring(0, 16) + 'Z'
           : '–';
-
-        doc.text(trunc(dateStr, 19),                cols[0].x + 1, y + 4);
-        doc.text(trunc(ev.location_name || '', 18), cols[1].x + 1, y + 4);
-        doc.text(trunc(ev.category || '', 13),      cols[2].x + 1, y + 4);
-        doc.text(String(ev.severity || 1),          cols[3].x + 1, y + 4);
-        doc.text(trunc(ev.title || '', 44),         cols[4].x + 1, y + 4);
-        doc.text(trunc(ev.source_name || '', 20),   cols[5].x + 1, y + 4);
-
-        y += rowH;
+        doc.text(trunc(dateStr, cols[0].chars),              cols[0].x, y);
+        doc.text(trunc(ev.location_name || '', cols[1].chars), cols[1].x, y);
+        doc.text(trunc(ev.category || '', cols[2].chars),    cols[2].x, y);
+        doc.text(String(ev.severity || 1),                   cols[3].x, y);
+        doc.text(trunc(ev.title || '', cols[4].chars),       cols[4].x, y);
+        doc.text(trunc(ev.source_name || '', cols[5].chars), cols[5].x, y);
+        y += 5.5;
+        if (i < top10.length - 1) rule(y - 1.5);
       });
-      y += 6;
+      y += 8;
     }
 
-    // ── AI briefing ───────────────────────────────────────────────────────────
+    // ── AI Briefing ───────────────────────────────────────────────────────────
     const briefingEl   = document.getElementById('briefing-content');
     const briefingText = briefingEl ? (briefingEl.innerText || briefingEl.textContent || '') : '';
 
     if (briefingText.trim()) {
       if (y > 240) { doc.addPage(); y = margin; }
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.setTextColor(250, 204, 21);
-      doc.text('AI INTELLIGENCE BRIEFING', margin, y + 5);
-      y += 10;
+      y = sectionTitle('AI Intelligence Briefing', y);
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
-      doc.setTextColor(212, 217, 232);
+      doc.setFontSize(8);
+      doc.setTextColor(...C_BLACK);
 
       const cleaned = briefingText.replace(/\n{3,}/g, '\n\n').trim();
       const lines   = doc.splitTextToSize(cleaned, contentW);
       lines.forEach(line => {
         if (y > 278) { doc.addPage(); y = margin; }
         doc.text(line, margin, y);
-        y += 4;
+        y += line.trim() === '' ? 3 : 4.5;
       });
     }
 
@@ -700,20 +642,14 @@ async function exportPDF() {
     const totalPages = doc.internal.getNumberOfPages();
     for (let p = 1; p <= totalPages; p++) {
       doc.setPage(p);
-      doc.setDrawColor(30, 34, 48);
-      doc.setLineWidth(0.3);
-      doc.line(margin, 287, pageW - margin, 287);
+      rule(287, 0.25);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(6.5);
-      doc.setTextColor(107, 114, 128);
-      doc.text(
-        `HORIZONINT Intelligence Report  ·  ${utcStr}  ·  Page ${p} / ${totalPages}`,
-        margin, 292
-      );
+      doc.setTextColor(...C_LIGHT);
+      doc.text(`HorizonInt Intelligence Report  ·  ${utcStr}  ·  Page ${p} / ${totalPages}`, margin, 292);
     }
 
-    const filename = `horizonint_report_${now.toISOString().split('T')[0]}.pdf`;
-    doc.save(filename);
+    doc.save(`horizonint_${now.toISOString().split('T')[0]}.pdf`);
 
   } finally {
     if (btn) { btn.disabled = false; if (labelEl) labelEl.textContent = 'EXPORT PDF'; }
