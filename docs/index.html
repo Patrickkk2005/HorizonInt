@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HorizonInt — Geopolitical Intelligence Dashboard</title>
-  <meta name="description" content="Real-time geopolitical intelligence dashboard aggregating world news from 19 major RSS feeds." />
+  <title>HorizonInt — Romania Geopolitical Intelligence</title>
+  <meta name="description" content="Romania-focused geopolitical intelligence dashboard tracking neighbors, NATO/EU, energy security, and domestic developments." />
 
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -56,6 +56,52 @@
     </div>
   </header>
 
+  <!-- ── Neighbor Hero Strip ─────────────────────────────────────────────── -->
+  <div id="neighbor-strip">
+    <span class="neighbor-label">NEIGHBOR WATCH</span>
+    <div id="neighbor-chips">
+      <button class="neighbor-chip" data-neighbor="ua" title="Ukraine">
+        <span class="neighbor-flag">UA</span>
+        <span class="neighbor-name">Ukraine</span>
+        <span class="neighbor-count" id="nc-ua">–</span>
+      </button>
+      <button class="neighbor-chip" data-neighbor="md" title="Moldova">
+        <span class="neighbor-flag">MD</span>
+        <span class="neighbor-name">Moldova</span>
+        <span class="neighbor-count" id="nc-md">–</span>
+      </button>
+      <button class="neighbor-chip" data-neighbor="hu" title="Hungary">
+        <span class="neighbor-flag">HU</span>
+        <span class="neighbor-name">Hungary</span>
+        <span class="neighbor-count" id="nc-hu">–</span>
+      </button>
+      <button class="neighbor-chip" data-neighbor="rs" title="Serbia">
+        <span class="neighbor-flag">RS</span>
+        <span class="neighbor-name">Serbia</span>
+        <span class="neighbor-count" id="nc-rs">–</span>
+      </button>
+      <button class="neighbor-chip" data-neighbor="bg" title="Bulgaria">
+        <span class="neighbor-flag">BG</span>
+        <span class="neighbor-name">Bulgaria</span>
+        <span class="neighbor-count" id="nc-bg">–</span>
+      </button>
+      <button class="neighbor-chip neighbor-chip--nato" data-neighbor="nato" title="NATO">
+        <span class="neighbor-flag">NATO</span>
+        <span class="neighbor-count" id="nc-nato">–</span>
+      </button>
+      <button class="neighbor-chip neighbor-chip--energy" data-neighbor="energy" title="Energy">
+        <span class="neighbor-flag">⚡</span>
+        <span class="neighbor-name">Energy</span>
+        <span class="neighbor-count" id="nc-energy">–</span>
+      </button>
+    </div>
+    <div id="ro-impact-bar">
+      <span class="ro-impact-chip ro-direct">DIRECT <span id="ri-count-direct">–</span></span>
+      <span class="ro-impact-chip ro-security">SECURITY <span id="ri-count-security">–</span></span>
+      <span class="ro-impact-chip ro-economic">ECONOMIC <span id="ri-count-economic">–</span></span>
+    </div>
+  </div>
+
   <!-- ── Category Filter Bar ──────────────────────────────────────────────── -->
   <div id="filter-bar">
     <button class="cat-btn active" data-cat="all">All</button>
@@ -74,7 +120,24 @@
   <!-- ── Main Grid ────────────────────────────────────────────────────────── -->
   <main id="main-grid">
 
-    <!-- Left: AI Briefing -->
+    <!-- Left: Romania Impact Feed -->
+    <section id="panel-ro-feed">
+      <div class="panel-header">
+        <span class="panel-title">Romania Impact</span>
+        <span id="ro-feed-count" class="panel-subtitle">Loading…</span>
+      </div>
+      <div id="ro-feed-list" class="feed-list">
+        <!-- RO-relevant articles, populated by app.js -->
+      </div>
+      <div class="panel-divider">
+        <span class="panel-divider-label">World Feed</span>
+      </div>
+      <div id="world-feed-list" class="feed-list feed-list--secondary">
+        <!-- Non-RO articles, populated by app.js -->
+      </div>
+    </section>
+
+    <!-- Center: AI Briefing -->
     <aside id="panel-briefing">
       <div class="panel-header">
         <span class="panel-title">AI Intelligence Briefing</span>
@@ -87,17 +150,6 @@
       </div>
       <div id="briefing-meta" class="briefing-meta"></div>
     </aside>
-
-    <!-- Center: News Feed -->
-    <section id="panel-feed">
-      <div class="panel-header">
-        <span class="panel-title">News Feed</span>
-        <span id="feed-count" class="panel-subtitle">Loading…</span>
-      </div>
-      <div id="feed-list" class="feed-list">
-        <!-- populated by app.js -->
-      </div>
-    </section>
 
     <!-- Right: Event Timeline -->
     <section id="panel-timeline">
@@ -116,10 +168,11 @@
   <div id="map-container">
     <div id="map-header">
       <span class="panel-title">Global Event Map</span>
-      <span class="panel-subtitle">Circle size = severity · Dashed ring = Romania economic/security impact</span>
+      <span class="panel-subtitle">Circle size = severity · Yellow arcs = Romania-impacted events</span>
       <div id="map-controls">
         <button class="map-toggle-btn" id="btn-heat">HEAT</button>
         <button class="map-toggle-btn" id="btn-arcs">RO ARCS</button>
+        <button class="map-toggle-btn" id="btn-neighbor-caps">NEIGHBOR CAPS</button>
       </div>
     </div>
     <div id="map"></div>

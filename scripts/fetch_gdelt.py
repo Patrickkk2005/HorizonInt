@@ -27,7 +27,7 @@ import requests
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
 
-OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "public/data"))
+OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "docs/data"))
 GDELT_LASTUPDATE_URL = "http://data.gdeltproject.org/gdeltv2/lastupdate.txt"
 MAX_GDELT_EVENTS = 100
 REQUEST_TIMEOUT  = 30

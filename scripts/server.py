@@ -41,7 +41,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(mess
 log = logging.getLogger(__name__)
 
 SCRIPTS_DIR = Path(__file__).parent
-DATA_DIR    = Path(os.environ.get('OUTPUT_DIR', 'public/data'))
+DATA_DIR    = Path(os.environ.get('OUTPUT_DIR', 'docs/data'))
+STATIC_DIR  = Path('/app/static')   # static files bundled in image (e.g. romania.geojson)
 PORT        = int(os.environ.get('PORT', 8787))
 
 SCRIPTS = {
@@ -102,6 +103,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
 
         fpath = DATA_DIR / fname
+        if not fpath.exists():
+            fpath = STATIC_DIR / fname   # fallback to image-bundled static files
         if not fpath.exists():
             self._json(404, {'error': 'file not found'})
             return

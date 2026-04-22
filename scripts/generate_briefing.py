@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
 HorizonInt — Daily AI Briefing Generator
-Runs daily at 06:00 UTC via GitHub Actions.
-Loads top articles and generates a markdown intelligence briefing via AI API.
+Loads top articles and generates a Romania-first intelligence briefing via AI API.
 """
 
 import json
@@ -15,7 +14,6 @@ try:
             os.environ[_e] = getattr(config, _k)
 except ImportError:
     pass
-import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -35,42 +33,108 @@ except ImportError:
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
 
-OUTPUT_DIR   = Path(os.getenv("OUTPUT_DIR", "public/data"))
-TOP_ARTICLES = 30
+OUTPUT_DIR   = Path(os.getenv("OUTPUT_DIR", "docs/data"))
+TOP_ARTICLES = 40
 
 BRIEFING_PROMPT = """\
-You are a senior geopolitical intelligence analyst. Using the following {n} news articles \
-from the past 24 hours, write a concise daily intelligence briefing.
+You are a senior intelligence analyst at a Romania-focused geopolitical monitoring center. \
+Your primary audience is Romanian decision-makers and analysts tracking threats and opportunities \
+from Romania's immediate neighbourhood and the NATO/EU strategic environment.
 
-Structure your briefing with these markdown sections:
+GEOPOLITICAL CONTEXT YOU MUST APPLY:
+- Romania is a NATO member on the Alliance's eastern flank, bordering Ukraine (north-east, ~650 km) \
+  and Moldova (east). This makes it a front-line state for any conflict escalation.
+- Romania's Black Sea coastline (Constanța, Năvodari) is strategically vital for NATO maritime \
+  operations and EU grain export routes via the Sulina Channel (Danube delta).
+- Romania hosts two NATO installations: the Deveselu Aegis Ashore missile shield base and \
+  Mihail Kogălniceanu air base (rotational US/NATO forces). Any upgrade or threat to these is \
+  first-tier news.
+- Romania completed Schengen land-border accession (January 2025) and is pursuing eurozone \
+  entry — EU monetary policy and fiscal rules directly affect its macro outlook.
+- NEPTUN DEEP: Romania's offshore Black Sea gas field (OMV Petrom + Romgaz joint venture). \
+  First gas expected 2027. Any disruption, regulatory change, or Black Sea security threat \
+  is directly economically relevant.
+- Neighbor watch priority order: Ukraine (active war, shared ~650 km border) → Moldova \
+  (energy dependency, Transnistrian frozen conflict) → Hungary (NATO/EU friction, ethnic \
+  minority issues with Romanian Hungarians in Transylvania) → Serbia (EU candidate, swing \
+  state between EU and Russia) → Bulgaria (shared Black Sea, Danube, NATO ally).
+- Energy security: Ukraine gas transit to Moldova ended December 2024; Romania is the \
+  fallback supplier. LNG import capacity at Constanța and BRUA pipeline interconnects are \
+  strategic assets.
+- Romania's 2024 presidential election was annulled after first round due to Russian \
+  interference findings. A re-run was held in May 2025. Domestic political instability \
+  combined with external pressure is a core vulnerability.
 
-## Executive Summary
-2-3 sentences covering the most critical global developments.
-
-## Key Conflict Situations
-Brief bullets on active armed conflicts and their trajectory.
-
-## Diplomatic Developments
-Notable negotiations, agreements, or diplomatic incidents.
-
-## Eastern Europe & Romania Watch
-Any developments directly or indirectly affecting Romania, \
-its neighbors (Moldova, Ukraine, Hungary, Serbia, Bulgaria), or NATO/EU security architecture.
-
-## Economic & Sanctions Watch
-Significant economic pressures, sanctions, or trade disruptions.
-
-## 24-48 Hour Outlook
-Concise assessment of what to watch in the near term.
+Using the following {n} news articles, write a structured daily intelligence briefing. \
+Be analytical, concise, and Romania-first in your framing. Use **bold** for key entities \
+and locations. Use bullet points for lists.
 
 ---
 
-Be factual, analytical, and concise. Do not speculate beyond what the articles support.
-Use markdown formatting (bold for key entities, bullet points for lists).
+## EXECUTIVE SUMMARY
+2-3 sentences on the single most critical development for Romania today.
+
+## NEIGHBOR WATCH
+
+### Ukraine
+Key developments in/about Ukraine with direct Romania-relevance (front-line shifts, \
+Black Sea security, energy transit, refugee flows). If no relevant articles, write \
+"No significant new developments."
+
+### Moldova
+Developments in Moldova, Transnistria, or the Prut border area. Energy situation, \
+Russian pressure signals, EU accession progress.
+
+### Hungary
+NATO/EU friction points, bilateral Romania-Hungary issues (Transylvanian Hungarians, \
+Schengen cooperation, energy deals with Russia).
+
+### Serbia
+EU accession status, Kosovo escalation risk, Serbia-Russia ties and implications for \
+NATO's southern flank.
+
+### Bulgaria
+Black Sea cooperation, energy infrastructure, Bulgarian domestic political instability.
+
+## NATO / EU WATCH
+Alliance posture changes, deployments to the eastern flank, Article 5 discussions, \
+EU sanctions or enlargement moves with Romania relevance.
+
+## ENERGY SECURITY
+Gas prices, pipeline politics (TurkStream, NEPTUN DEEP, Transgaz interconnectors), \
+LNG market moves, Black Sea energy infrastructure.
+
+## DOMESTIC ROMANIA
+Romanian government decisions, fiscal/economic data, judicial or anti-corruption \
+developments, political stability signals.
+
+## GLOBAL CONTEXT
+2-3 bullets on global events indirectly relevant to Romania's strategic position \
+(US policy shifts, Middle East energy disruption, major power signalling).
+
+## 24-48 HOUR OUTLOOK
+3 bullet points: what to watch, ranked by Romania-relevance.
+
+---
+
+Be factual and analytical. Do not speculate beyond what the articles support. \
+If a section has no relevant articles, write "No significant developments." and move on.
 
 ARTICLES:
 {articles}
 """
+
+
+def ro_priority_score(a: dict) -> float:
+    impact_bonus  = {"direct": 3.0, "security": 2.0, "economic": 1.5, "none": 0.0}
+    neighbor_bonus = {
+        "ua": 1.5, "md": 1.2, "nato": 1.2, "eu": 1.0,
+        "hu": 0.8, "rs": 0.6, "bg": 0.6, "energy": 1.0, "other": 0.0,
+    }
+    base = a.get("relevance_score", 0)
+    ri   = impact_bonus.get(a.get("romania_impact", "none"), 0)
+    nc   = neighbor_bonus.get(a.get("neighbor_country", "other"), 0)
+    return base + ri + nc
 
 
 def load_top_articles() -> list[dict]:
@@ -79,26 +143,24 @@ def load_top_articles() -> list[dict]:
         log.error("articles.json not found at %s", path)
         return []
     articles: list[dict] = json.loads(path.read_text())
-    # Sort by relevance then recency, pick top N
-    articles.sort(key=lambda a: (
-        a.get("relevance_score", 0),
-        a.get("published_at", ""),
-    ), reverse=True)
+    articles.sort(key=ro_priority_score, reverse=True)
     return articles[:TOP_ARTICLES]
 
 
 def format_articles_for_prompt(articles: list[dict]) -> str:
     lines = []
     for i, a in enumerate(articles, 1):
+        nc = a.get("neighbor_country", "other")
+        ri = a.get("romania_impact", "none")
         lines.append(
             f"{i}. [{a['source_name']}] {a['title']}\n"
-            f"   Category: {a['category']} | Region: {a['region']}\n"
+            f"   Category: {a['category']} | Neighbor: {nc} | RO Impact: {ri}\n"
             f"   {a.get('summary', '')[:300]}\n"
         )
     return "\n".join(lines)
 
 
-def generate_briefing(articles: list[dict]) -> str:
+def generate_briefing(articles: list[dict]) -> tuple[str, str]:
     article_text = format_articles_for_prompt(articles)
     prompt = BRIEFING_PROMPT.format(n=len(articles), articles=article_text)
 
@@ -109,7 +171,7 @@ def generate_briefing(articles: list[dict]) -> str:
         client = anthropic.Anthropic(api_key=ak)
         resp = client.messages.create(
             model=model,
-            max_tokens=2048,
+            max_tokens=2800,
             messages=[{"role": "user", "content": prompt}],
         )
         return resp.content[0].text.strip(), model
@@ -122,7 +184,7 @@ def generate_briefing(articles: list[dict]) -> str:
         resp = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=2048,
+            max_tokens=2800,
         )
         return resp.choices[0].message.content.strip(), model
 

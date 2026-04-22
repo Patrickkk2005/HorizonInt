@@ -48,17 +48,18 @@ log = logging.getLogger(__name__)
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-OUTPUT_DIR      = Path(os.getenv("OUTPUT_DIR", "public/data"))
-MAX_ARTICLES    = 50
-MAX_EVENTS      = 200
+OUTPUT_DIR      = Path(os.getenv("OUTPUT_DIR", "docs/data"))
+MAX_ARTICLES    = 100
+MAX_EVENTS      = 400
 RELEVANCE_THRESH = 0.35
 FUZZY_THRESH    = 85
 BATCH_SIZE      = 30
 FEED_TIMEOUT    = 15   # seconds per feed
 
-# ── RSS Feeds (19) ────────────────────────────────────────────────────────────
+# ── RSS Feeds (~34) ───────────────────────────────────────────────────────────
 
 RSS_FEEDS = [
+    # Global / Western
     {"name": "BBC World",       "url": "http://feeds.bbci.co.uk/news/world/rss.xml",                      "region": "Global"},
     {"name": "Al Jazeera",      "url": "https://www.aljazeera.com/xml/rss/all.xml",                       "region": "Global"},
     {"name": "France 24",       "url": "https://www.france24.com/en/rss",                                  "region": "Europe"},
@@ -67,17 +68,29 @@ RSS_FEEDS = [
     {"name": "Reuters",         "url": "https://feeds.reuters.com/reuters/worldNews",                      "region": "Global"},
     {"name": "AP News",         "url": "https://rsshub.app/apnews/topics/world-news",                     "region": "Global"},
     {"name": "RFE/RL",          "url": "https://www.rferl.org/api/zpqosqosqesm",                          "region": "Eastern Europe"},
-    {"name": "PBS NewsHour",    "url": "https://www.pbs.org/newshour/feeds/rss/world",                    "region": "Global"},
-    {"name": "NPR World",       "url": "https://feeds.npr.org/1004/rss.xml",                              "region": "Global"},
     {"name": "UN News",         "url": "https://news.un.org/feed/subscribe/en/news/all/rss.xml",          "region": "Global"},
     {"name": "ICRC",            "url": "https://www.icrc.org/en/rss/news",                                "region": "Global"},
-    {"name": "ReliefWeb",       "url": "https://reliefweb.int/updates/rss.xml",                           "region": "Global"},
-    {"name": "SCMP",            "url": "https://www.scmp.com/rss/2/feed",                                 "region": "Asia"},
     {"name": "Moscow Times",    "url": "https://www.themoscowtimes.com/rss/news",                         "region": "Russia"},
     {"name": "Middle East Eye", "url": "https://www.middleeasteye.net/rss",                               "region": "Middle East"},
-    {"name": "Africa News",     "url": "https://www.africanews.com/feed/",                                "region": "Africa"},
     {"name": "Euronews",        "url": "https://www.euronews.com/rss?format=mrss&level=theme&name=news",  "region": "Europe"},
     {"name": "Politico EU",     "url": "https://www.politico.eu/feed/",                                   "region": "Europe"},
+    # Romanian media
+    {"name": "G4Media",         "url": "https://www.g4media.ro/feed",                                     "region": "Romania"},
+    {"name": "Digi24",          "url": "https://www.digi24.ro/rss",                                       "region": "Romania"},
+    {"name": "HotNews",         "url": "https://www.hotnews.ro/feed",                                     "region": "Romania"},
+    {"name": "Romania Insider",  "url": "https://www.romania-insider.com/feed",                           "region": "Romania"},
+    # Neighbor countries
+    {"name": "Kyiv Independent", "url": "https://kyivindependent.com/feed/",                              "region": "Ukraine"},
+    {"name": "Ukrinform EN",     "url": "https://www.ukrinform.net/rss/block-lastnews",                   "region": "Ukraine"},
+    {"name": "Moldova.org EN",   "url": "https://www.moldova.org/en/feed/",                               "region": "Moldova"},
+    {"name": "Balkan Insight",   "url": "https://balkaninsight.com/feed/",                                "region": "Balkans"},
+    {"name": "Total Serbia News","url": "https://www.total-serbia-news.com/feed/",                        "region": "Balkans"},
+    {"name": "Hungary Today",    "url": "https://hungarytoday.hu/feed/",                                  "region": "Hungary"},
+    {"name": "Sofia Globe",      "url": "https://sofiaglobe.com/feed/",                                   "region": "Bulgaria"},
+    # NATO / EU / Energy
+    {"name": "NATO News",        "url": "https://www.nato.int/cps/en/natohq/news.rss",                    "region": "NATO/EU"},
+    {"name": "EURACTIV East",    "url": "https://www.euractiv.com/sections/europe-s-east/feed/",          "region": "NATO/EU"},
+    {"name": "Natural Gas World","url": "https://www.naturalgasworld.com/rss.xml",                        "region": "Energy"},
 ]
 
 # ── Category Keywords ─────────────────────────────────────────────────────────
@@ -349,12 +362,20 @@ CITY_TO_REGION: dict[str, str] = {
 
 # Map feed source region labels → geo-region codes used above
 _FEED_REGION_MAP: dict[str, str] = {
-    "Middle East": "ME",
-    "Europe":       "EU",
-    "Eastern Europe": "EU",
-    "Russia":       "EU",
-    "Africa":       "AF",
-    "Asia":         "AS",
+    "Middle East":   "ME",
+    "Europe":        "EU",
+    "Eastern Europe":"EU",
+    "Russia":        "EU",
+    "Africa":        "AF",
+    "Asia":          "AS",
+    "Romania":       "EU",
+    "Ukraine":       "EU",
+    "Moldova":       "EU",
+    "Hungary":       "EU",
+    "Bulgaria":      "EU",
+    "Balkans":       "EU",
+    "NATO/EU":       "EU",
+    "Energy":        "EU",
 }
 
 # ── CAMEO Violence Codes (25) ──────────────────────────────────────────────────
@@ -485,6 +506,20 @@ _DIRECT_KEYWORDS = {
     "chisinau", "chișinău", "moldovan",
     # Key Romanian state companies often mentioned by name in English press
     "petrom", "romgaz", "transgaz", "hidroelectrica", "banca transilvania",
+    # Romanian political leaders / institutions
+    "iohannis", "ciolacu", "ciuca", "cîțu", "citu",
+    "romanian government", "romanian parliament", "romanian president",
+    "romanian prime minister", "romanian pm",
+    "psd", "pnl", "usr", "aur",          # major Romanian parties
+    # Romanian military
+    "romanian army", "romanian air force", "romanian navy",
+    "romanian forces", "romanian troops", "romanian soldiers",
+    # NATO installations in Romania
+    "deveselu", "mihail kogalniceanu",
+    # Black Sea / energy assets
+    "romanian black sea", "neptun deep", "romanian eez",
+    # Diaspora
+    "romanian diaspora", "romanians abroad", "romanian workers",
 }
 
 _ECONOMIC_KEYWORDS = {
@@ -518,6 +553,19 @@ _ECONOMIC_KEYWORDS = {
     "ukrainian refugee", "refugee crisis europe",
     # Ukraine reconstruction spending (Romanian contractors, cross-border trade)
     "ukraine reconstruction",
+    # Romania-specific fiscal / macro
+    "romania imf", "romania credit rating", "romania budget deficit",
+    "romanian budget", "romanian fiscal", "romanian economy",
+    "romanian exports", "romanian imports",
+    # EU recovery funds critical to Romania
+    "pnrr", "national recovery plan",
+    "eu funds romania", "cohesion romania",
+    # Romania's offshore gas
+    "neptun deep gas", "offshore gas romania",
+    "romanian energy market",
+    # Neighbor economic spillover
+    "ukrainian grain glut", "moldova economic",
+    "hungarian economy eu", "bulgarian economy",
 }
 
 _SECURITY_KEYWORDS = {
@@ -534,7 +582,8 @@ _SECURITY_KEYWORDS = {
     "zaporizhzhia", "zaporizhia",  # Nuclear plant — fallout risk for Romania
     "kherson",                  # Southern Ukraine, Black Sea region
     # Moldova / Transnistria
-    "moldova", "transnistria",
+    "moldova", "transnistria", "transnistrian conflict",
+    "gagauzia",                 # Separatist region of Moldova
     # Black Sea military
     "black sea fleet", "black sea security", "black sea navy",
     "russian navy", "snake island",
@@ -552,8 +601,98 @@ _SECURITY_KEYWORDS = {
     "nuclear europe",
     # Air/missile defence relevant to Romania
     "patriot missile", "air defense system", "missile shield",
-    "deveselu",         # NATO missile shield base in Romania (likely triggers direct too)
+    "deveselu",         # NATO missile shield base in Romania
+    # Energy as security vector
+    "energy weapon", "gas cutoff", "gas blackmail",
+    "energy dependence", "energy leverage",
+    # Threats to Romanian territory / airspace
+    "romanian airspace", "romanian territory",
+    "black sea drone", "drone black sea",
+    # Neighbor-specific security
+    "hungarian veto", "orban nato",
+    "serbian-nato", "serbia eu accession",
+    "moldova nato", "moldova eu",
 }
+
+
+# ── Neighbor Country Keywords ─────────────────────────────────────────────────
+
+NEIGHBOR_COUNTRY_KEYWORDS: dict[str, list[str]] = {
+    "ua": [
+        "ukraine", "ukrainian", "ukrainians",
+        "kyiv", "kiev", "kharkiv", "odessa", "odesa", "lviv", "zaporizhzhia",
+        "kherson", "mykolaiv", "dnipro", "mariupol", "donetsk", "luhansk",
+        "sumy", "chernihiv", "poltava", "vinnytsia", "zhytomyr",
+        "donbas", "donbass", "crimea", "azov sea", "azov",
+        "bucha", "irpin", "bakhmut", "avdiivka", "chasiv yar",
+        "zelensky", "zelenskyy", "zaluzhny", "syrsky",
+        "verkhovna rada", "ukrinform",
+        "grain corridor", "ukraine grain", "dnipro river",
+    ],
+    "md": [
+        "moldova", "moldovan", "moldovans",
+        "chisinau", "chișinău", "balti", "bălți",
+        "transnistria", "transdniestria",
+        "maia sandu", "igor dodon",
+        "gagauzia", "prut river",
+        "moldova gas", "moldovan gas",
+    ],
+    "hu": [
+        "hungary", "hungarian", "hungarians",
+        "budapest", "debrecen", "miskolc",
+        "viktor orban", "orban", "orbán",
+        "fidesz", "jobbik",
+        "tisza river", "hungarian veto",
+    ],
+    "rs": [
+        "serbia", "serbian", "serbs",
+        "belgrade", "beograd", "novi sad", "nis",
+        "vucic", "vučić", "aleksandar vucic",
+        "sns", "vojvodina",
+    ],
+    "bg": [
+        "bulgaria", "bulgarian", "bulgarians",
+        "sofia", "plovdiv", "varna", "burgas",
+        "borisov", "radev", "bulgarian lev",
+    ],
+    "energy": [
+        "gas pipeline", "lng terminal", "lng import", "lng tanker",
+        "nord stream", "nordstream", "turkstream", "turk stream",
+        "neptun deep", "black sea gas",
+        "romgaz", "petrom", "transgaz",
+        "energy security europe", "eu energy",
+        "gas transit ukraine", "ukraine gas transit",
+        "natural gas price", "lng price", "spot gas",
+        "interconnector", "danube corridor",
+        "nabucco", "southstream",
+    ],
+    "nato": [
+        "nato", "north atlantic treaty", "nato summit", "nato article 5",
+        "nato eastern flank", "eastern flank", "nato member",
+        "nato secretary general", "stoltenberg", "rutte",
+        "nato troops", "allied forces", "collective defense",
+        "deveselu", "mihail kogalniceanu",
+        "nato air policing",
+    ],
+    "eu": [
+        "european union", "european commission", "council of the eu",
+        "eu parliament", "european parliament",
+        "von der leyen", "eu enlargement", "eu accession",
+        "schengen", "eurozone", "eu cohesion",
+        "eu recovery fund", "recovery and resilience",
+        "eu sanctions", "eu tariff", "eu trade",
+        "pnrr",
+    ],
+}
+
+
+def classify_neighbor_country(text: str) -> str:
+    """Return the primary neighbor/topic tag for an article (rule-based, no AI)."""
+    tl = text.lower()
+    for country in ("ua", "md", "hu", "rs", "bg", "energy", "nato", "eu"):
+        if any(kw in tl for kw in NEIGHBOR_COUNTRY_KEYWORDS[country]):
+            return country
+    return "other"
 
 
 def rule_classify(title: str, summary: str) -> str | None:
@@ -659,11 +798,16 @@ def main():
         except Exception:
             existing = []
 
-    # Migrate legacy romania_impact labels from old schema
+    # Migrate legacy labels and backfill new fields on existing articles
     _valid_impacts = {"direct", "economic", "security", "none"}
+    _valid_neighbors = {"ua", "md", "hu", "rs", "bg", "nato", "eu", "energy", "other"}
     for art in existing:
         if art.get("romania_impact") not in _valid_impacts:
             art["romania_impact"] = "none"
+        if art.get("neighbor_country") not in _valid_neighbors:
+            art["neighbor_country"] = classify_neighbor_country(
+                art.get("title", "") + " " + art.get("summary", "")
+            )
 
     existing_hashes = {url_hash(a["url"]) for a in existing}
     existing_titles = [normalize_title(a["title"]) for a in existing]
@@ -677,16 +821,17 @@ def main():
             cat = categorize(raw["_text"])
             rel = compute_relevance(raw["_text"])
             art = {
-                "id":           url_hash(raw["url"]),
-                "url":          raw["url"],
-                "title":        raw["title"],
-                "summary":      raw["summary"],
-                "source_name":  raw["source_name"],
-                "category":     cat,
-                "region":       raw["region"],
-                "published_at": raw["published_at"],
+                "id":              url_hash(raw["url"]),
+                "url":             raw["url"],
+                "title":           raw["title"],
+                "summary":         raw["summary"],
+                "source_name":     raw["source_name"],
+                "category":        cat,
+                "region":          raw["region"],
+                "published_at":    raw["published_at"],
                 "relevance_score": round(rel, 3),
                 "romania_impact":  "none",
+                "neighbor_country": classify_neighbor_country(raw["_text"]),
             }
             new_articles.append(art)
             existing_hashes.add(url_hash(raw["url"]))
@@ -812,6 +957,21 @@ def main():
         cat_counts[a["category"]] = cat_counts.get(a["category"], 0) + 1
     regions = list({a["region"] for a in all_articles[:100]})
 
+    neighbor_activity: dict[str, int] = {k: 0 for k in ("ua", "md", "hu", "rs", "bg", "nato", "eu", "energy", "other")}
+    for a in all_articles:
+        nc = a.get("neighbor_country", "other")
+        neighbor_activity[nc] = neighbor_activity.get(nc, 0) + 1
+
+    romania_impact_counts: dict[str, int] = {"direct": 0, "economic": 0, "security": 0, "none": 0}
+    for a in all_articles:
+        ri = a.get("romania_impact", "none")
+        romania_impact_counts[ri] = romania_impact_counts.get(ri, 0) + 1
+
+    energy_alerts = sum(
+        1 for a in all_articles
+        if a.get("neighbor_country") == "energy" and a.get("romania_impact") != "none"
+    )
+
     # Write files
     (OUTPUT_DIR / "articles.json").write_text(
         json.dumps(all_articles, ensure_ascii=False, indent=2))
@@ -821,11 +981,14 @@ def main():
         json.dumps({"type": "FeatureCollection", "features": all_features},
                    ensure_ascii=False, indent=2))
     (OUTPUT_DIR / "stats.json").write_text(json.dumps({
-        "article_count": len(all_articles),
-        "event_count":   len(all_events),
-        "last_updated":  datetime.now(timezone.utc).isoformat(),
-        "active_regions": sorted(regions),
-        "categories":    cat_counts,
+        "article_count":        len(all_articles),
+        "event_count":          len(all_events),
+        "last_updated":         datetime.now(timezone.utc).isoformat(),
+        "active_regions":       sorted(regions),
+        "categories":           cat_counts,
+        "neighbor_activity":    neighbor_activity,
+        "romania_impact_counts": romania_impact_counts,
+        "energy_alerts":        energy_alerts,
     }, ensure_ascii=False, indent=2))
 
     log.info("Done. %d articles, %d events written to %s",

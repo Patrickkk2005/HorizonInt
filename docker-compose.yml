@@ -1,0 +1,45 @@
+services:
+  server:
+    build: .
+    ports:
+      - "8787:8787"
+    volumes:
+      - horizonint_data:/data
+    env_file:
+      - .env
+    restart: always
+
+  cron:
+    build: .
+    volumes:
+      - horizonint_data:/data
+    env_file:
+      - .env
+    restart: always
+    command: >
+      bash -c "
+        while true; do
+          python3 scripts/fetch_feeds.py
+          python3 scripts/fetch_gdelt.py
+          python3 scripts/fetch_gdacs.py
+          sleep 3600
+        done
+      "
+
+  briefing:
+    build: .
+    volumes:
+      - horizonint_data:/data
+    env_file:
+      - .env
+    restart: always
+    command: >
+      bash -c "
+        while true; do
+          sleep \$(( (6*3600 - ($(date +%s) % 86400) + 86400) % 86400 ))
+          python3 scripts/generate_briefing.py
+        done
+      "
+
+volumes:
+  horizonint_data:

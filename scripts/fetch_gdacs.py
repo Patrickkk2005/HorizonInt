@@ -24,7 +24,7 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
 
-OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "public/data"))
+OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "docs/data"))
 GDACS_RSS  = "https://www.gdacs.org/xml/rss.xml"
 MAX_EVENTS = 60
 
