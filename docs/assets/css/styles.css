@@ -83,7 +83,7 @@ body[data-glow="0"]::after { opacity: 0; }
   position: relative; z-index: 1;
   height: 100vh;
   display: grid;
-  grid-template-rows: 52px 46px 1fr;
+  grid-template-rows: 52px 54px 1fr;
   grid-template-columns: 260px 1fr;
   grid-template-areas:
     "top     top"
@@ -190,6 +190,8 @@ body[data-glow="0"]::after { opacity: 0; }
 .threat {
   display: flex; flex-direction: column; justify-content: center;
   padding: 0 16px; border-right: 1px solid var(--border);
+  overflow: hidden; position: relative; z-index: 1;
+  background: rgba(11,14,20,0.95);
 }
 .threat-label { font-family: var(--f-mono); font-size: 9px; letter-spacing: .18em;
   color: var(--text-xdim); text-transform: uppercase; }
@@ -218,12 +220,13 @@ body[data-glow="0"]::after { opacity: 0; }
   display: flex; align-items: center;
 }
 .ticker-wrap::before, .ticker-wrap::after {
-  content: ""; position: absolute; top: 0; bottom: 0; width: 40px; z-index: 2; pointer-events: none;
+  content: ""; position: absolute; top: 0; bottom: 0; width: 72px; z-index: 2; pointer-events: none;
 }
-.ticker-wrap::before { left: 0; background: linear-gradient(to right, var(--bg-1), transparent); }
-.ticker-wrap::after  { right: 0; background: linear-gradient(to left,  var(--bg-1), transparent); }
+.ticker-wrap::before { left: 0; background: linear-gradient(to right, rgba(11,14,20,1) 0%, rgba(11,14,20,.85) 60%, transparent); }
+.ticker-wrap::after  { right: 0; background: linear-gradient(to left,  rgba(11,14,20,1) 0%, rgba(11,14,20,.85) 60%, transparent); }
 .ticker {
   display: flex; gap: 36px; white-space: nowrap;
+  padding-left: 80px;
   animation: ticker 60s linear infinite;
 }
 .ticker:hover { animation-play-state: paused; }
@@ -243,6 +246,7 @@ body[data-glow="0"]::after { opacity: 0; }
 .counter {
   display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
   padding: 6px 14px; border-left: 1px solid var(--border); min-width: 92px;
+  position: relative; overflow: hidden;
 }
 .counter-label { font-family: var(--f-mono); font-size: 9px; letter-spacing: .18em;
   color: var(--text-xdim); text-transform: uppercase; }
@@ -254,7 +258,11 @@ body[data-glow="0"]::after { opacity: 0; }
 }
 .counter-delta { font-family: var(--f-mono); font-size: 10px; font-weight: 600; color: var(--live); }
 .counter-delta.down { color: var(--cat-conflict); }
-.spark { width: 64px; height: 18px; margin-top: 3px; }
+.spark {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  width: 100%; height: 24px; margin: 0;
+  opacity: 0.35; pointer-events: none;
+}
 
 /* ── Sidebar ────────────────────────────────────────────────────────────────── */
 #sidebar {
@@ -348,18 +356,32 @@ body[data-glow="0"]::after { opacity: 0; }
 #main {
   grid-area: main;
   display: grid;
-  grid-template-rows: minmax(240px, 290px) 1fr;
+  grid-template-rows: var(--hero-h, 380px) auto 1fr;
   overflow: hidden;
   min-height: 0;
 }
 
 /* Hero row */
 .hero {
-  display: grid; grid-template-columns: 1.35fr 1fr;
+  display: grid; grid-template-columns: 1.6fr 1fr;
   gap: 14px; padding: 14px 14px 0;
   min-height: 0; overflow: hidden;
 }
 .hero > .card { min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+
+/* Hero resize handle */
+.hero-resize-handle {
+  height: 8px; cursor: row-resize;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; user-select: none;
+}
+.hero-resize-handle::after {
+  content: ""; width: 48px; height: 3px; border-radius: 99px;
+  background: var(--border-hi);
+  transition: background .15s, width .15s;
+}
+.hero-resize-handle:hover::after,
+.hero-resize-handle.dragging::after { background: var(--accent); width: 72px; }
 
 /* Cards */
 .card {
@@ -448,12 +470,51 @@ body[data-glow="0"]::after { opacity: 0; }
 
 /* ── Grid row ───────────────────────────────────────────────────────────────── */
 .grid-row {
-  display: grid; grid-template-columns: 1.2fr 1fr 1fr;
-  gap: 14px; padding: 14px;
+  display: flex; gap: 14px; padding: 14px;
   min-height: 0; overflow: hidden;
 }
-/* Grid items must declare min-height:0 so they don't bust out of their row */
-.grid-row > .card { min-height: 0; }
+.grid-row > .card {
+  flex: 1 1 0; min-height: 0; min-width: 0;
+  transition: flex .3s cubic-bezier(.4,0,.2,1), max-width .3s cubic-bezier(.4,0,.2,1);
+}
+.map-card  { flex: 1.2 1 0; }
+.feed-card { flex: 1 1 0; }
+.timeline-card { flex: 1 1 0; }
+
+/* ── Panel collapse ─────────────────────────────────────────────────────────── */
+.card-collapse-btn {
+  width: 22px; height: 22px; flex-shrink: 0;
+  display: grid; place-items: center;
+  background: transparent; border: 1px solid var(--border);
+  border-radius: var(--radius-s); color: var(--text-xdim);
+  cursor: pointer; transition: .15s; margin-left: auto;
+}
+.card-collapse-btn:hover { border-color: var(--border-hi); color: var(--text-hi); background: var(--bg-2); }
+.card-collapse-btn svg { transition: transform .25s; }
+
+.panel-label {
+  display: none;
+  writing-mode: vertical-rl; text-orientation: mixed;
+  transform: rotate(180deg);
+  font-family: var(--f-mono); font-size: 9px; letter-spacing: .18em;
+  color: var(--text-xdim); text-transform: uppercase; white-space: nowrap;
+}
+
+.grid-row > .card.panel-collapsed {
+  flex: 0 0 36px; min-width: 36px; max-width: 36px;
+}
+.panel-collapsed .card-head {
+  flex-direction: column; height: 100%;
+  align-items: center; padding: 10px 0;
+  border-bottom: none; gap: 10px;
+}
+.panel-collapsed .card-head > *:not(.card-collapse-btn):not(.panel-label) { display: none; }
+.panel-collapsed .panel-label { display: flex; align-items: center; flex: 1; }
+.panel-collapsed .card-collapse-btn { margin-left: 0; }
+.panel-collapsed .card-collapse-btn svg { transform: rotate(180deg); }
+.panel-collapsed .map-wrap,
+.panel-collapsed .feed-list,
+.panel-collapsed .timeline-list { display: none; }
 
 /* ── Map card ───────────────────────────────────────────────────────────────── */
 .map-card { display: flex; flex-direction: column; min-height: 0; }

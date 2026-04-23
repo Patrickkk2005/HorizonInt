@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
 HorizonInt — RSS Feed Fetcher
-Runs hourly via GitHub Actions.
-Fetches 19 RSS feeds, categorises articles, deduplicates, extracts geo-events,
-classifies Romania impact via AI API, writes public/data/*.json
+Fetches 28 RSS feeds, categorises articles, adds neighbor_country field,
+deduplicates, extracts geo-events, classifies Romania impact via AI API.
+Writes to OUTPUT_DIR (default: docs/data). Runs hourly via Docker cron service.
 """
 
 import feedparser

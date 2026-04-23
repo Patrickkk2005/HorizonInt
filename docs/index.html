@@ -30,7 +30,7 @@
   <header id="topbar">
     <div class="brand">
       <div class="brand-mark">
-        <svg viewBox="0 0 32 32" fill="none">
+        <svg viewBox="0 0 32 32" fill="none" width="26" height="26">
           <circle cx="16" cy="16" r="14" stroke="#facc15" stroke-width="1.2" opacity=".35"/>
           <circle cx="16" cy="16" r="9"  stroke="#facc15" stroke-width="1" opacity=".6"/>
           <path d="M2 18 Q 16 10 30 18" stroke="#60a5fa" stroke-width="1.4" fill="none"/>
@@ -214,6 +214,9 @@
       </section>
     </div>
 
+    <!-- Resize handle between hero and grid row -->
+    <div class="hero-resize-handle" id="hero-resize" title="Drag to resize"></div>
+
     <!-- Grid row: Map + Feed + Timeline -->
     <div class="grid-row">
 
@@ -227,6 +230,10 @@
             <button class="tgl on" data-toggle="arcs">RO ARCS</button>
             <button class="tgl"    data-toggle="caps">CAPITALS</button>
           </div>
+          <span class="panel-label">Map</span>
+          <button class="card-collapse-btn" title="Collapse panel">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
         </div>
         <div class="map-wrap">
           <div id="map"></div>
@@ -250,6 +257,10 @@
             <button class="feed-tab ro" data-feed="ro">Romania</button>
             <button class="feed-tab" data-feed="world">World</button>
           </div>
+          <span class="panel-label">Live feed</span>
+          <button class="card-collapse-btn" title="Collapse panel">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
         </div>
         <div class="feed-list" id="feed-list"></div>
       </section>
@@ -260,6 +271,10 @@
           <span class="card-title"><strong>Event timeline</strong></span>
           <span class="card-sub">Geo-tagged</span>
           <span class="chip" id="timeline-new-count" style="--c:var(--live);margin-left:auto;">● 0 events</span>
+          <span class="panel-label">Timeline</span>
+          <button class="card-collapse-btn" title="Collapse panel">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
         </div>
         <div class="timeline-list" id="timeline-list"></div>
       </section>

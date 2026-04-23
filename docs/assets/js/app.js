@@ -873,6 +873,60 @@ async function exportPDF() {
   }
 }
 
+// ── Hero resize ───────────────────────────────────────────────────────────────
+function setupHeroResize() {
+  const handle = document.getElementById('hero-resize');
+  const main   = document.getElementById('main');
+  if (!handle || !main) return;
+
+  let dragging = false;
+  let startY   = 0;
+  let startH   = 0;
+
+  handle.addEventListener('mousedown', e => {
+    dragging = true;
+    startY   = e.clientY;
+    startH   = parseInt(getComputedStyle(main).getPropertyValue('--hero-h')) || 380;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const delta  = e.clientY - startY;
+    const mainH  = main.getBoundingClientRect().height;
+    const newH   = Math.max(180, Math.min(mainH - 160, startH + delta));
+    main.style.setProperty('--hero-h', `${newH}px`);
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    requestAnimationFrame(() => requestAnimationFrame(() => leafletMap?.invalidateSize()));
+  });
+}
+
+// ── Panel collapse ────────────────────────────────────────────────────────────
+function setupPanelCollapse() {
+  document.querySelectorAll('.card-collapse-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const card = btn.closest('.card');
+      if (!card) return;
+      const isCollapsing = !card.classList.contains('panel-collapsed');
+      card.classList.toggle('panel-collapsed');
+      btn.title = isCollapsing ? 'Expand panel' : 'Collapse panel';
+      if (card.querySelector('#map')) {
+        requestAnimationFrame(() => requestAnimationFrame(() => leafletMap?.invalidateSize()));
+      }
+    });
+  });
+}
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 async function init() {
   startClock();
@@ -880,6 +934,8 @@ async function init() {
   setupFeedTabs();
   setupSearch();
   setupTweaks();
+  setupPanelCollapse();
+  setupHeroResize();
 
   document.querySelector('.tgl[data-toggle="heat"]')?.addEventListener('click', toggleHeatmap);
   document.querySelector('.tgl[data-toggle="arcs"]')?.addEventListener('click', toggleArcs);

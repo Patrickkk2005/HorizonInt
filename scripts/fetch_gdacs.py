@@ -3,7 +3,7 @@
 HorizonInt — GDACS Disaster Event Fetcher
 Fetches the GDACS RSS feed (free, no API key) for major global disaster alerts.
 Covers: earthquakes, tropical cyclones, floods, volcanoes, tsunamis, droughts, wildfires.
-Merges into public/data/events.geojson and events.json
+Merges into OUTPUT_DIR/events.geojson and events.json. Runs hourly via Docker cron service.
 """
 
 import feedparser

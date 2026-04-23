@@ -2,16 +2,16 @@
 """
 HorizonInt — Self-hosted API server (stdlib only, no pip).
 Serves data files with CORS and triggers pipeline scripts on demand.
+Runs as the 'server' service in docker-compose.yml on port 8787.
 
 Routes:
-  GET  /data/<file>.json   → serve public/data/<file>
+  GET  /data/<file>.json   → serve OUTPUT_DIR/<file>
   POST /run/feeds          → fetch_feeds.py
   POST /run/gdelt          → fetch_gdelt.py
   POST /run/gdacs          → fetch_gdacs.py
   POST /run/briefing       → generate_briefing.py
 
-Start: python3 server.py
-Task Scheduler entry: wsl -e bash -c "cd ~/horizonint && python3 scripts/server.py"
+Start: python3 server.py  (or via docker compose up)
 """
 
 import http.server

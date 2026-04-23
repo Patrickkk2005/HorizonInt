@@ -2,7 +2,8 @@
 """
 HorizonInt — GDELT Conflict Event Fetcher
 Fetches the latest GDELT v2 15-minute export, filters for 25 CAMEO violence codes,
-extracts events with lat/lng, and merges into public/data/events.geojson
+extracts events with lat/lng, merges into OUTPUT_DIR/events.geojson.
+Runs hourly via Docker cron service.
 """
 
 import csv
