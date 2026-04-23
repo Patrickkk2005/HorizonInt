@@ -1,184 +1,306 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HorizonInt — Romania Geopolitical Intelligence</title>
-  <meta name="description" content="Romania-focused geopolitical intelligence dashboard tracking neighbors, NATO/EU, energy security, and domestic developments." />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HorizonInt — Geopolitical Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <!-- Leaflet.heat -->
-  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Leaflet.heat -->
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<!-- marked.js -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<!-- html2canvas -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<!-- jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-  <!-- marked.js (markdown rendering) -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
-  <!-- html2canvas (map capture) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <!-- jsPDF (PDF generation) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-  <!-- App styles -->
-  <link rel="stylesheet" href="assets/css/styles.css" />
+<link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body>
 
-  <!-- ── Header ───────────────────────────────────────────────────────────── -->
-  <header id="header">
-    <div class="header-left">
-      <span class="logo">HORIZONINT</span>
-      <span class="live-dot" title="Live feed"></span>
-      <span class="live-label">LIVE</span>
-    </div>
-    <div class="header-center">
-      <span id="utc-clock" class="utc-clock">--:--:-- UTC</span>
-    </div>
-    <div class="header-right">
-      <button id="btn-export" class="export-btn" title="Download intelligence report as PDF">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+<div id="app">
+
+  <!-- ── TOP BAR ── -->
+  <header id="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 32 32" fill="none">
+          <circle cx="16" cy="16" r="14" stroke="#facc15" stroke-width="1.2" opacity=".35"/>
+          <circle cx="16" cy="16" r="9"  stroke="#facc15" stroke-width="1" opacity=".6"/>
+          <path d="M2 18 Q 16 10 30 18" stroke="#60a5fa" stroke-width="1.4" fill="none"/>
+          <circle cx="16" cy="16" r="2.6" fill="#facc15"/>
         </svg>
-        <span class="export-btn-label">EXPORT PDF</span>
-      </button>
-      <span class="stat-chip" id="stat-articles">
-        <span class="stat-num" id="article-count">–</span>
-        <span class="stat-label">articles</span>
-      </span>
-      <span class="stat-chip" id="stat-events">
-        <span class="stat-num" id="event-count">–</span>
-        <span class="stat-label">events</span>
-      </span>
-      <span class="stat-chip updated-chip">
-        Updated <span id="last-updated">–</span>
-      </span>
+      </div>
+      <div>
+        <div class="brand-text">HORIZONINT</div>
+        <div class="brand-sub">Intelligence / v3.0</div>
+      </div>
     </div>
+
+    <div class="sep-v"></div>
+    <div class="live-pill"><span class="dot"></span><span>LIVE FEED</span></div>
+    <div class="top-spacer"></div>
+
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="q" placeholder="Search feeds, events, regions…" />
+      <span class="search-kbd">⌘K</span>
+    </div>
+
+    <div class="clock"><span class="ts-label">UTC</span><span id="clock">--:--:--</span></div>
+
+    <button class="icon-btn" title="Alerts">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+    </button>
+    <button class="icon-btn" title="Settings" id="btn-tweaks">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3h0a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8v0a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
+    </button>
+    <button class="export-btn" id="btn-export">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>Export brief</span>
+    </button>
   </header>
 
-  <!-- ── Neighbor Hero Strip ─────────────────────────────────────────────── -->
-  <div id="neighbor-strip">
-    <span class="neighbor-label">NEIGHBOR WATCH</span>
-    <div id="neighbor-chips">
-      <button class="neighbor-chip" data-neighbor="ua" title="Ukraine">
-        <span class="neighbor-flag">UA</span>
-        <span class="neighbor-name">Ukraine</span>
-        <span class="neighbor-count" id="nc-ua">–</span>
-      </button>
-      <button class="neighbor-chip" data-neighbor="md" title="Moldova">
-        <span class="neighbor-flag">MD</span>
-        <span class="neighbor-name">Moldova</span>
-        <span class="neighbor-count" id="nc-md">–</span>
-      </button>
-      <button class="neighbor-chip" data-neighbor="hu" title="Hungary">
-        <span class="neighbor-flag">HU</span>
-        <span class="neighbor-name">Hungary</span>
-        <span class="neighbor-count" id="nc-hu">–</span>
-      </button>
-      <button class="neighbor-chip" data-neighbor="rs" title="Serbia">
-        <span class="neighbor-flag">RS</span>
-        <span class="neighbor-name">Serbia</span>
-        <span class="neighbor-count" id="nc-rs">–</span>
-      </button>
-      <button class="neighbor-chip" data-neighbor="bg" title="Bulgaria">
-        <span class="neighbor-flag">BG</span>
-        <span class="neighbor-name">Bulgaria</span>
-        <span class="neighbor-count" id="nc-bg">–</span>
-      </button>
-      <button class="neighbor-chip neighbor-chip--nato" data-neighbor="nato" title="NATO">
-        <span class="neighbor-flag">NATO</span>
-        <span class="neighbor-count" id="nc-nato">–</span>
-      </button>
-      <button class="neighbor-chip neighbor-chip--energy" data-neighbor="energy" title="Energy">
-        <span class="neighbor-flag">⚡</span>
-        <span class="neighbor-name">Energy</span>
-        <span class="neighbor-count" id="nc-energy">–</span>
-      </button>
+  <!-- ── SUB BAR: THREAT + TICKER + COUNTERS ── -->
+  <div id="subbar">
+    <div class="threat">
+      <div class="threat-label">Global Threat Index</div>
+      <div class="threat-row">
+        <span class="threat-level" id="threat-level">ELEVATED</span>
+        <span class="threat-bar" id="threat-bar"></span>
+      </div>
     </div>
-    <div id="ro-impact-bar">
-      <span class="ro-impact-chip ro-direct">DIRECT <span id="ri-count-direct">–</span></span>
-      <span class="ro-impact-chip ro-security">SECURITY <span id="ri-count-security">–</span></span>
-      <span class="ro-impact-chip ro-economic">ECONOMIC <span id="ri-count-economic">–</span></span>
+
+    <div class="ticker-wrap">
+      <div class="ticker" id="ticker"></div>
+    </div>
+
+    <div class="top-counters">
+      <div class="counter">
+        <div class="counter-label">Articles 24h</div>
+        <div class="counter-row">
+          <span class="counter-val" id="kpi-articles">0</span>
+          <span class="counter-delta" id="kpi-articles-delta">▲ live</span>
+        </div>
+        <svg class="spark" id="spark-articles" viewBox="0 0 64 18" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="counter">
+        <div class="counter-label">Events</div>
+        <div class="counter-row">
+          <span class="counter-val" id="kpi-events">0</span>
+          <span class="counter-delta" id="kpi-events-delta">● live</span>
+        </div>
+        <svg class="spark" id="spark-events" viewBox="0 0 64 18" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="counter">
+        <div class="counter-label">RO Alerts</div>
+        <div class="counter-row">
+          <span class="counter-val" id="kpi-ro" style="color:var(--ro)">0</span>
+          <span class="counter-delta" style="color:var(--ro)">▲ RO</span>
+        </div>
+        <svg class="spark" id="spark-ro" viewBox="0 0 64 18" preserveAspectRatio="none"></svg>
+      </div>
     </div>
   </div>
 
-  <!-- ── Category Filter Bar ──────────────────────────────────────────────── -->
-  <div id="filter-bar">
-    <button class="cat-btn active" data-cat="all">All</button>
-    <button class="cat-btn" data-cat="conflict"    style="--cat-color:#ef4444">Conflict</button>
-    <button class="cat-btn" data-cat="protests"    style="--cat-color:#f97316">Protests</button>
-    <button class="cat-btn" data-cat="diplomacy"   style="--cat-color:#3b82f6">Diplomacy</button>
-    <button class="cat-btn" data-cat="sanctions"   style="--cat-color:#a855f7">Sanctions</button>
-    <button class="cat-btn" data-cat="humanrights" style="--cat-color:#ec4899">Human Rights</button>
-    <button class="cat-btn" data-cat="elections"   style="--cat-color:#22c55e">Elections</button>
-    <button class="cat-btn" data-cat="economy"     style="--cat-color:#84cc16">Economy</button>
-    <button class="cat-btn" data-cat="environment" style="--cat-color:#14b8a6">Environment</button>
-    <button class="cat-btn" data-cat="technology"  style="--cat-color:#06b6d4">Technology</button>
-    <button class="cat-btn" data-cat="disaster"    style="--cat-color:#f59e0b">Disaster</button>
-  </div>
+  <!-- ── SIDEBAR ── -->
+  <aside id="sidebar">
+    <div class="side-section">
+      <div class="side-title">Workspace</div>
+      <div class="nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+        <span>Command Center</span><span class="num">01</span>
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 1 0 -18 0"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+        <span>World Watch</span>
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <span>Timeline</span>
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11c0 5-4 9-9 9s-9-4-9-9 4-9 9-9c2 0 3.8.7 5.3 1.9"/><path d="M12 11l4-4"/><circle cx="16" cy="7" r="2" fill="currentColor"/></svg>
+        <span>Romania Hub</span>
+      </div>
+    </div>
 
-  <!-- ── Main Grid ────────────────────────────────────────────────────────── -->
-  <main id="main-grid">
+    <div class="side-section">
+      <div class="side-title">Categories <span class="count" id="cat-total">10</span></div>
+      <div id="cat-rows"></div>
+    </div>
 
-    <!-- Left: Romania Impact Feed -->
-    <section id="panel-ro-feed">
-      <div class="panel-header">
-        <span class="panel-title">Romania Impact</span>
-        <span id="ro-feed-count" class="panel-subtitle">Loading…</span>
-      </div>
-      <div id="ro-feed-list" class="feed-list">
-        <!-- RO-relevant articles, populated by app.js -->
-      </div>
-      <div class="panel-divider">
-        <span class="panel-divider-label">World Feed</span>
-      </div>
-      <div id="world-feed-list" class="feed-list feed-list--secondary">
-        <!-- Non-RO articles, populated by app.js -->
-      </div>
-    </section>
+    <div class="side-section">
+      <div class="side-title">Neighbor Watch</div>
+      <div class="neighbor-list" id="neighbor-list"></div>
+    </div>
 
-    <!-- Center: AI Briefing -->
-    <aside id="panel-briefing">
-      <div class="panel-header">
-        <span class="panel-title">AI Intelligence Briefing</span>
-        <span id="briefing-date" class="panel-subtitle">–</span>
+    <div class="side-foot">
+      <div class="avatar">RO</div>
+      <div>
+        <div>Romania Desk</div>
+        <div class="role">Bucharest · Intelligence Hub</div>
       </div>
-      <div id="briefing-content" class="briefing-body">
-        <div class="skeleton-block"></div>
-        <div class="skeleton-block" style="width:80%"></div>
-        <div class="skeleton-block" style="width:90%"></div>
-      </div>
-      <div id="briefing-meta" class="briefing-meta"></div>
-    </aside>
+    </div>
+  </aside>
 
-    <!-- Right: Event Timeline -->
-    <section id="panel-timeline">
-      <div class="panel-header">
-        <span class="panel-title">Event Timeline</span>
-        <span class="panel-subtitle">Geo-tagged events</span>
-      </div>
-      <div id="timeline-list" class="timeline-list">
-        <!-- populated by app.js -->
-      </div>
-    </section>
+  <!-- ── MAIN ── -->
+  <main id="main">
 
+    <!-- Hero row: Briefing + Region Pulse -->
+    <div class="hero">
+
+      <!-- AI Briefing card -->
+      <section class="card briefing">
+        <div class="briefing-main">
+          <div class="briefing-kicker">
+            <span id="briefing-date-text">Daily Intelligence Briefing · Loading…</span>
+            <span id="briefing-gen-time" style="font-family:var(--f-mono);font-size:10px;color:var(--text-xdim);letter-spacing:.14em;flex:none;"></span>
+          </div>
+          <h1 class="briefing-head">Romania Geopolitical Intelligence &amp; <em>Eastern Europe Watch</em></h1>
+          <div class="briefing-body" id="briefing-content">
+            <div class="skeleton-block"></div>
+            <div class="skeleton-block" style="width:80%"></div>
+            <div class="skeleton-block" style="width:90%"></div>
+            <div class="skeleton-block" style="width:70%"></div>
+          </div>
+          <div class="br-tags" id="briefing-tags">
+            <span class="chip" style="--c:var(--ro)">RO DIRECT</span>
+            <span class="chip" style="--c:var(--cat-conflict)">CONFLICT</span>
+            <span class="chip" style="--c:var(--cat-diplomacy)">DIPLOMACY</span>
+          </div>
+        </div>
+        <div class="briefing-side">
+          <div class="si-stat">
+            <span class="si-label">Romania Impact</span>
+            <div class="si-impact">
+              <div class="ii" data-impact="direct" style="--c:var(--ro)">
+                <div class="ii-n">–</div><div class="ii-l">Direct</div>
+              </div>
+              <div class="ii" data-impact="security" style="--c:var(--cat-conflict)">
+                <div class="ii-n">–</div><div class="ii-l">Security</div>
+              </div>
+              <div class="ii" data-impact="economic" style="--c:var(--cat-economy)">
+                <div class="ii-n">–</div><div class="ii-l">Econ</div>
+              </div>
+            </div>
+          </div>
+          <div class="si-stat" id="si-last-updated">
+            <span class="si-label">Last Updated</span>
+            <span class="si-value" id="si-update-val">–</span>
+            <span class="si-note" id="si-update-note">Fetching data…</span>
+          </div>
+          <div class="si-stat">
+            <span class="si-label">Top Region</span>
+            <span class="si-value" id="si-top-region">–</span>
+            <span class="si-note" id="si-top-region-note">Most active neighbor</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Regional Pulse -->
+      <section class="card">
+        <div class="card-head">
+          <span class="card-title"><strong>Regional pulse</strong> · 24h</span>
+          <span class="card-sub">Activity by theater</span>
+        </div>
+        <div id="region-bars" style="padding:14px 16px;display:flex;flex-direction:column;gap:9px;overflow-y:auto;flex:1;min-height:0"></div>
+      </section>
+    </div>
+
+    <!-- Grid row: Map + Feed + Timeline -->
+    <div class="grid-row">
+
+      <!-- MAP -->
+      <section class="card map-card">
+        <div class="card-head">
+          <span class="card-title"><strong>Global event map</strong></span>
+          <span class="card-sub">Circle size = severity · yellow arcs = RO impact</span>
+          <div class="map-head-controls">
+            <button class="tgl on" data-toggle="heat">HEAT</button>
+            <button class="tgl on" data-toggle="arcs">RO ARCS</button>
+            <button class="tgl"    data-toggle="caps">CAPITALS</button>
+          </div>
+        </div>
+        <div class="map-wrap">
+          <div id="map"></div>
+          <div class="map-legend">
+            <div style="font-family:var(--f-mono);font-size:9px;letter-spacing:.14em;color:var(--text-hi);text-transform:uppercase;margin-bottom:4px;">Legend</div>
+            <div class="map-legend-row"><span class="legend-dot" style="background:var(--cat-conflict)"></span> Conflict</div>
+            <div class="map-legend-row"><span class="legend-dot" style="background:var(--cat-protests)"></span> Protests</div>
+            <div class="map-legend-row"><span class="legend-dot" style="background:var(--cat-diplomacy)"></span> Diplomacy</div>
+            <div class="map-legend-row"><span class="legend-dot" style="background:var(--cat-disaster)"></span> Disaster</div>
+            <div class="map-legend-row" style="margin-top:4px"><span class="legend-dot" style="background:var(--ro);box-shadow:0 0 8px var(--ro)"></span> Romania impact</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FEED -->
+      <section class="card feed-card">
+        <div class="card-head">
+          <span class="card-title"><strong>Live feed</strong></span>
+          <div class="feed-tabs">
+            <button class="feed-tab on" data-feed="all">All</button>
+            <button class="feed-tab ro" data-feed="ro">Romania</button>
+            <button class="feed-tab" data-feed="world">World</button>
+          </div>
+        </div>
+        <div class="feed-list" id="feed-list"></div>
+      </section>
+
+      <!-- TIMELINE -->
+      <section class="card timeline-card">
+        <div class="card-head">
+          <span class="card-title"><strong>Event timeline</strong></span>
+          <span class="card-sub">Geo-tagged</span>
+          <span class="chip" id="timeline-new-count" style="--c:var(--live);margin-left:auto;">● 0 events</span>
+        </div>
+        <div class="timeline-list" id="timeline-list"></div>
+      </section>
+
+    </div>
   </main>
+</div>
 
-  <!-- ── Map ──────────────────────────────────────────────────────────────── -->
-  <div id="map-container">
-    <div id="map-header">
-      <span class="panel-title">Global Event Map</span>
-      <span class="panel-subtitle">Circle size = severity · Yellow arcs = Romania-impacted events</span>
-      <div id="map-controls">
-        <button class="map-toggle-btn" id="btn-heat">HEAT</button>
-        <button class="map-toggle-btn" id="btn-arcs">RO ARCS</button>
-        <button class="map-toggle-btn" id="btn-neighbor-caps">NEIGHBOR CAPS</button>
-      </div>
-    </div>
-    <div id="map"></div>
+<!-- ── TWEAKS PANEL ── -->
+<aside id="tweaks">
+  <div class="card-title">
+    <span><strong>Tweaks</strong></span>
+    <span id="tw-close" style="cursor:pointer;color:var(--text-xdim);">✕</span>
   </div>
+  <div class="tw-row">
+    <span class="tw-label">Accent</span>
+    <div class="swatches" id="tw-accent">
+      <div class="sw sel" style="background:#60a5fa" data-c="#60a5fa"></div>
+      <div class="sw"     style="background:#facc15" data-c="#facc15"></div>
+      <div class="sw"     style="background:#34d399" data-c="#34d399"></div>
+      <div class="sw"     style="background:#f472b6" data-c="#f472b6"></div>
+      <div class="sw"     style="background:#c084fc" data-c="#c084fc"></div>
+    </div>
+  </div>
+  <div class="tw-row">
+    <span class="tw-label">Density</span>
+    <div id="tw-density" style="display:flex;gap:4px;">
+      <button class="tgl"    data-d="compact">Compact</button>
+      <button class="tgl on" data-d="comfy">Comfy</button>
+    </div>
+  </div>
+  <div class="tw-row">
+    <span class="tw-label">Ticker</span>
+    <div class="switch on" id="tw-ticker"></div>
+  </div>
+  <div class="tw-row">
+    <span class="tw-label">Ambient glow</span>
+    <div class="switch on" id="tw-glow"></div>
+  </div>
+</aside>
 
-  <!-- App JS -->
-  <script src="assets/js/app.js"></script>
+<script src="assets/js/app.js"></script>
 </body>
 </html>
